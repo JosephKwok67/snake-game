@@ -202,6 +202,33 @@
             margin-bottom: 20px;
             font-size: 1.1rem;
         }
+        #levelComplete {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(20, 5, 15, 0.95);
+            padding: 28px 45px;
+            border-radius: 20px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            border-image: linear-gradient(135deg, #22c55e, #00ffff, #22c55e) 1;
+            box-shadow: 0 0 50px rgba(34, 197, 94, 0.45), inset 0 0 20px rgba(0, 255, 255, 0.1);
+            text-align: center;
+            display: none;
+            max-height: 92vh;
+            overflow-y: auto;
+            z-index: 15;
+        }
+        #levelComplete h2 {
+            color: #4ade80;
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px #22c55e;
+        }
+        #levelComplete p {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
         button {
             padding: 10px 25px;
             font-size: 1rem;
@@ -972,6 +999,13 @@
         <button onclick="backToMenu()" style="margin-top: 10px; background: linear-gradient(135deg, #444, #666);">返回主菜单</button>
     </div>
 
+    <div id="levelComplete">
+        <h2>🎉 闯关成功</h2>
+        <p>第 <span id="levelCompleteNum">1</span> 关完成</p>
+        <p style="font-size:0.9rem;color:#888;margin-top:-10px;">得分 <span id="levelCompleteScore">0</span></p>
+        <button onclick="backToLevelSelect()">选择下一关</button>
+    </div>
+
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -980,6 +1014,9 @@
         const highScoreEl = document.getElementById('highScore');
         const finalScoreEl = document.getElementById('finalScore');
         const gameOverEl = document.getElementById('gameOver');
+        const levelCompleteEl = document.getElementById('levelComplete');
+        const levelCompleteNumEl = document.getElementById('levelCompleteNum');
+        const levelCompleteScoreEl = document.getElementById('levelCompleteScore');
         const leaderboardEndlessListEl = document.getElementById('leaderboardEndlessList');
         const leaderboardLevelListEl = document.getElementById('leaderboardLevelList');
         const recordNoticeEl = document.getElementById('recordNotice');
@@ -1686,6 +1723,8 @@
             startMenuEl.style.display = 'none';
             nameSetupEl.style.display = 'none';
             rankingScreenEl.style.display = 'none';
+            difficultySelectEl.style.display = 'none';
+            if (levelCompleteEl) levelCompleteEl.style.display = 'none';
             levelSelectEl.style.display = 'block';
             renderLevelGrid();
         }
@@ -2158,7 +2197,7 @@
 
                 if (gameMode === 'level') {
                     if (levelEaten >= levelTarget) {
-                        levelUp();
+                        levelComplete();
                     } else {
                         const missing = getFoodsOnMapForLevel(level) - foods.length;
                         if (missing > 0) spawnFoods(missing);
@@ -2189,22 +2228,13 @@
             gameLoopId = setInterval(gameLoop, newDelay);
         }
 
-        function levelUp() {
+        function levelComplete() {
+            gameRunning = false;
             score += level * 50; // 过关奖励
             unlockLevel(level + 1); // 解锁下一关
-            level++;
-            startMenuLevel = level; // 记录当前进度，复活从当前关开始
-            levelEaten = 0;
-            generateObstacles(getObstacleCountForLevel(level));
-            levelTarget = getLevelTarget(level);
-            foods = [];
-            spawnFoods(getFoodsOnMapForLevel(level));
-            formatScoreBoard();
-
-            // 过关音效
             playLevelUpSound();
 
-            // 显示过关提示（用粒子爆发代替弹窗，不打断节奏）
+            // 显示过关提示（用粒子爆发庆祝）
             for (let i = 0; i < 30; i++) {
                 particles.push({
                     x: canvas.width / 2,
@@ -2217,9 +2247,30 @@
                 });
             }
 
-            // 关卡越高速度越快
-            if (gameLoopId) clearInterval(gameLoopId);
-            gameLoopId = setInterval(gameLoop, Math.max(45, 100 - level * 2));
+            // 延迟一点弹出通关面板，让玩家看到庆祝效果
+            setTimeout(() => {
+                stopMusic();
+                if (levelCompleteEl) {
+                    levelCompleteNumEl.textContent = level;
+                    levelCompleteScoreEl.textContent = score;
+                    levelCompleteEl.style.display = 'block';
+                }
+                if (mobileControlsEl) mobileControlsEl.classList.remove('active');
+            }, 600);
+        }
+
+        function backToLevelSelect() {
+            if (levelCompleteEl) levelCompleteEl.style.display = 'none';
+            gameOverEl.style.display = 'none';
+            canvas.style.display = 'none';
+            playerBarEl.style.display = 'none';
+            if (mobileControlsEl) mobileControlsEl.classList.remove('active');
+            if (controlModeBarEl) controlModeBarEl.classList.remove('active');
+            gameTitleEl.style.opacity = '1';
+            gameMode = null;
+            stopMusic();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            showLevelSelect();
         }
 
         function playLevelUpSound() {
@@ -2262,6 +2313,7 @@
 
         function backToMenu() {
             gameOverEl.style.display = 'none';
+            if (levelCompleteEl) levelCompleteEl.style.display = 'none';
             levelSelectEl.style.display = 'none';
             nameSetupEl.style.display = 'none';
             rankingScreenEl.style.display = 'none';
