@@ -606,69 +606,6 @@
             text-transform: uppercase;
             margin-bottom: 10px;
         }
-        .start-btn {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            padding: 18px 56px;
-            font-size: 1.35rem;
-            font-weight: 900;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: #fff;
-            background: #0a050a;
-            border: none;
-            border-radius: 16px;
-            cursor: pointer;
-            overflow: hidden;
-            box-shadow:
-                0 0 20px rgba(255, 107, 53, 0.35),
-                0 0 50px rgba(157, 78, 237, 0.2);
-            transition: transform 0.25s, box-shadow 0.25s;
-            margin-bottom: 18px;
-        }
-        .start-btn::before {
-            content: '';
-            position: absolute;
-            inset: -2px;
-            border-radius: 18px;
-            background: linear-gradient(90deg, #ff6b35, #9d4edd, #00ffff, #ff6b35);
-            background-size: 300% 100%;
-            animation: borderFlow 3s linear infinite;
-            z-index: -1;
-        }
-        .start-btn::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 0; height: 0;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.25);
-            transform: translate(-50%, -50%);
-            transition: width 0.4s, height 0.4s;
-        }
-        @keyframes borderFlow {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 300% 50%; }
-        }
-        .start-btn:hover {
-            transform: scale(1.06) translateY(-2px);
-            box-shadow:
-                0 0 35px rgba(255, 107, 53, 0.65),
-                0 0 80px rgba(157, 78, 237, 0.45);
-        }
-        .start-btn:active {
-            transform: scale(0.96);
-            box-shadow:
-                0 0 15px rgba(255, 107, 53, 0.45),
-                inset 0 0 20px rgba(0,0,0,0.6);
-        }
-        .start-btn:active::after {
-            width: 300px; height: 300px;
-        }
         /* 模式选择 */
         .mode-grid {
             display: grid;
@@ -849,6 +786,37 @@
             transform: translateY(-2px);
             background: rgba(255, 215, 0, 0.14);
         }
+        .refresh-btn {
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.15rem;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            color: rgba(255, 255, 255, 0.75);
+            cursor: pointer;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.25s;
+            z-index: 5;
+        }
+        .refresh-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(0, 255, 255, 0.5);
+            color: #00ffff;
+            box-shadow: 0 0 18px rgba(0, 255, 255, 0.35);
+            transform: scale(1.08) rotate(90deg);
+        }
+        .refresh-btn:active {
+            transform: scale(0.92);
+        }
         @media (max-width: 800px) {
             .lobby-layout {
                 grid-template-columns: 1fr;
@@ -859,13 +827,15 @@
             .mode-grid {
                 grid-template-columns: 1fr 1fr;
             }
-            .start-btn {
-                padding: 16px 38px;
-                font-size: 1.15rem;
-            }
             #startMenu {
-                padding: 22px;
+                padding: 22px 22px 66px 22px;
                 width: 96vw;
+            }
+            .refresh-btn {
+                bottom: 14px;
+                left: 14px;
+                width: 40px;
+                height: 40px;
             }
         }
         @media (max-width: 420px) {
@@ -877,6 +847,9 @@
             }
             .player-pill {
                 padding: 8px 12px;
+            }
+            .menu-actions {
+                margin-top: 14px;
             }
         }
         .difficulty-grid {
@@ -1215,10 +1188,7 @@
             <div class="lobby-left">
                 <div class="hero-card glass-panel">
                     <div class="hero-inner">
-                        <div class="hero-tag">READY TO PLAY</div>
-                        <button class="start-btn" onclick="showDifficultySelect()">
-                            <span>▶</span> 开始游戏
-                        </button>
+                        <div class="hero-tag">SELECT MODE</div>
                         <div class="mode-grid">
                             <button class="mode-card endless" onclick="showDifficultySelect()">
                                 <div class="mode-icon">♾️</div>
@@ -1264,6 +1234,8 @@
                 <span>🌍</span> 查看全球排行榜
             </button>
         </div>
+
+        <button class="refresh-btn" onclick="location.reload()" title="页面卡死时点击刷新">🔄</button>
     </div>
 
     <div id="nameSetup">
