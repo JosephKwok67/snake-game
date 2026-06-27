@@ -818,7 +818,7 @@
     <div id="playerBar">玩家: <span id="playerName">—</span><button onclick="changePlayerName()">改名</button></div>
     <div id="scoreBoard">
         <span class="score-badge score"><span>🍎</span><span id="scoreLabel">得分:</span> <span id="score">0</span></span>
-        <span class="score-badge high"><span>👑</span> 最高: <span id="highScore">0</span></span>
+        <span class="score-badge high" id="highScoreBadge"><span>👑</span> 最高: <span id="highScore">0</span></span>
         <span class="score-badge level" id="levelBadge" style="display:none"><span>🏰</span> 关卡 <span id="levelBadgeNum">1</span></span>
         <span class="score-badge difficulty" id="difficultyBadge" style="display:none"><span id="difficultyBadgeIcon">🌱</span> <span id="difficultyBadgeName">简单</span></span>
         <span id="modeIndicator" title="点击切换控制模式">检测中...</span>
@@ -1001,14 +1001,15 @@
         const difficultyBadgeEl = document.getElementById('difficultyBadge');
         const difficultyBadgeIconEl = document.getElementById('difficultyBadgeIcon');
         const difficultyBadgeNameEl = document.getElementById('difficultyBadgeName');
+        const highScoreBadgeEl = document.getElementById('highScoreBadge');
 
         const gridSize = 20;
         const tileCount = canvas.width / gridSize;
 
         const DIFFICULTY = {
-            easy: { name: '简单', obstacleCount: 0, baseDelay: 120, speedUp: 0, color: '#4ade80' },
-            medium: { name: '中等', obstacleCount: 8, baseDelay: 100, speedUp: 2, color: '#ff9e00' },
-            hard: { name: '困难', obstacleCount: 18, baseDelay: 80, speedUp: 4, color: '#f87171' }
+            easy: { name: '简单', obstacleCount: 0, baseDelay: 120, speedUp: 0, multiplier: 1.0, color: '#4ade80' },
+            medium: { name: '中等', obstacleCount: 8, baseDelay: 100, speedUp: 2, multiplier: 1.25, color: '#ff9e00' },
+            hard: { name: '困难', obstacleCount: 18, baseDelay: 80, speedUp: 4, multiplier: 1.5, color: '#f87171' }
         };
         let endlessDifficulty = null;
         const endlessBoard = loadLeaderboard('endless');
@@ -1842,6 +1843,7 @@
             if (gameMode === 'level') {
                 if (levelBadgeEl) { levelBadgeEl.style.display = 'inline-flex'; levelBadgeNumEl.textContent = level; }
                 if (difficultyBadgeEl) difficultyBadgeEl.style.display = 'none';
+                if (highScoreBadgeEl) highScoreBadgeEl.style.display = 'none';
                 scoreLabelEl.textContent = '豆子:';
                 scoreEl.textContent = `${levelEaten}/${levelTarget}`;
                 return;
@@ -1856,10 +1858,12 @@
                     difficultyBadgeNameEl.style.color = d.color;
                 }
                 if (levelBadgeEl) levelBadgeEl.style.display = 'none';
+                if (highScoreBadgeEl) highScoreBadgeEl.style.display = 'inline-flex';
                 scoreLabelEl.textContent = '得分:';
                 scoreEl.textContent = score;
                 return;
             }
+            if (highScoreBadgeEl) highScoreBadgeEl.style.display = 'inline-flex';
             scoreLabelEl.textContent = '得分:';
             scoreEl.textContent = score;
         }
@@ -2098,12 +2102,35 @@
 
             snake.unshift(head);
 
+        function getDifficultyMultiplier() {
+            if (gameMode === 'endless' && endlessDifficulty && DIFFICULTY[endlessDifficulty]) {
+                return DIFFICULTY[endlessDifficulty].multiplier;
+            }
+            return 1;
+        }
+
+        function addScore(points) {
+            if (gameMode === 'endless' && endlessDifficulty) {
+                score += Math.round(points * getDifficultyMultiplier());
+            } else {
+                score += points;
+            }
+        }
+
+        function getSpeedThreshold() {
+            // 根据难度决定加速间隔：中等每 25 分，困难每 20 分
+            const speedStep = getEndlessSpeedUp();
+            if (speedStep <= 0) return Infinity;
+            return speedStep * 10;
+        }
+
             // 吃食物
             const eatenIndex = foods.findIndex(f => f.x === head.x && f.y === head.y);
             if (eatenIndex !== -1) {
                 const eatenFood = foods[eatenIndex];
                 foods.splice(eatenIndex, 1);
-                score += 10 + (gameMode === 'level' ? level : 0);
+                const basePoints = 10 + (gameMode === 'level' ? level : 0);
+                addScore(basePoints);
                 levelEaten++;
                 createParticles(eatenFood.x, eatenFood.y, `hsl(${(hue + 45) % 300}, 100%, 60%)`);
                 playEatSound();
@@ -2118,10 +2145,10 @@
                 } else {
                     const missing = 1 - foods.length;
                     if (missing > 0) spawnFoods(missing);
-                    // 无尽模式每吃 50 分加速一次（困难模式更快）
+                    // 无尽模式每达到一定分数加速一次
                     if (gameMode === 'endless' && endlessDifficulty) {
-                        const speedStep = getEndlessSpeedUp();
-                        if (speedStep > 0 && score > 0 && score % (speedStep * 10) === 0) {
+                        const threshold = getSpeedThreshold();
+                        if (threshold !== Infinity && score > 0 && score % threshold === 0) {
                             speedUpEndless();
                         }
                     }
@@ -2135,7 +2162,8 @@
         function speedUpEndless() {
             if (gameLoopId) clearInterval(gameLoopId);
             const base = getEndlessBaseDelay();
-            const reductions = Math.floor(score / (getEndlessSpeedUp() * 10));
+            const threshold = getSpeedThreshold();
+            const reductions = threshold === Infinity ? 0 : Math.floor(score / threshold);
             const newDelay = Math.max(45, base - reductions * 2);
             gameLoopId = setInterval(gameLoop, newDelay);
         }
@@ -2189,7 +2217,8 @@
             if (gameMode === 'level') {
                 finalScoreEl.innerHTML = `到达关卡 ${level}<br>得分 ${score}`;
             } else if (gameMode === 'endless' && endlessDifficulty) {
-                finalScoreEl.innerHTML = `<span style="font-size:0.9rem;color:${DIFFICULTY[endlessDifficulty].color}">${DIFFICULTY[endlessDifficulty].name}模式</span><br>得分 ${score}`;
+                const d = DIFFICULTY[endlessDifficulty];
+                finalScoreEl.innerHTML = `<span style="font-size:0.9rem;color:${d.color}">${d.name}模式 ×${d.multiplier}</span><br>得分 ${score}`;
             } else {
                 finalScoreEl.textContent = score;
             }
@@ -2206,7 +2235,7 @@
                 recordNoticeEl.style.display = 'none';
             }
 
-            // 提交全球分数
+            // 提交全球分数（已含难度加成）
             submitGlobalScore(score, mode, level);
         }
 
@@ -2223,6 +2252,7 @@
             if (controlModeBarEl) controlModeBarEl.classList.remove('active');
             if (levelBadgeEl) levelBadgeEl.style.display = 'none';
             if (difficultyBadgeEl) difficultyBadgeEl.style.display = 'none';
+            if (highScoreBadgeEl) highScoreBadgeEl.style.display = 'inline-flex';
             gameTitleEl.style.opacity = '1';
             gameMode = null;
             endlessDifficulty = null;
