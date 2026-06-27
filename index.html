@@ -1792,6 +1792,14 @@
             return 100;
         }
 
+        function getEndlessFoodCount() {
+            if (gameMode === 'endless' && endlessDifficulty) {
+                const d = DIFFICULTY[endlessDifficulty];
+                return d && d.obstacleCount > 0 ? 2 : 1;
+            }
+            return 1;
+        }
+
         function getEndlessSpeedUp() {
             if (gameMode === 'endless' && endlessDifficulty) {
                 return DIFFICULTY[endlessDifficulty].speedUp;
@@ -1829,7 +1837,7 @@
                 if (d.obstacleCount > 0) {
                     generateObstacles(d.obstacleCount);
                 }
-                spawnFoods(1);
+                spawnFoods(getEndlessFoodCount());
             } else {
                 spawnFoods(1);
             }
@@ -2143,7 +2151,7 @@
                         if (missing > 0) spawnFoods(missing);
                     }
                 } else {
-                    const missing = 1 - foods.length;
+                    const missing = getEndlessFoodCount() - foods.length;
                     if (missing > 0) spawnFoods(missing);
                     // 无尽模式每达到一定分数加速一次
                     if (gameMode === 'endless' && endlessDifficulty) {
