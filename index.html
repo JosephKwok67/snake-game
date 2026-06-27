@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>霓虹贪吃蛇</title>
+    <title>霓虹贪吃蛇 - 无尽/闯关/排行榜</title>
     <!-- Supabase SDK（国内访问更稳定，publishable key 设计为可公开，安全由 RLS 策略控制） -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
@@ -24,7 +24,8 @@
             box-sizing: border-box;
         }
         body {
-            background: radial-gradient(ellipse at top, #1a0b1a 0%, #0f0814 50%, #0a0a12 100%);
+            background:
+                radial-gradient(ellipse at top, #1a0b1a 0%, #0f0814 50%, #0a0a12 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -34,6 +35,21 @@
             color: #fff;
             overflow: hidden;
             touch-action: none;
+            position: relative;
+        }
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background:
+                radial-gradient(circle at 20% 30%, rgba(255, 107, 53, 0.08) 0%, transparent 35%),
+                radial-gradient(circle at 80% 70%, rgba(157, 78, 237, 0.08) 0%, transparent 35%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        .screen {
+            position: relative;
+            z-index: 1;
         }
         h1 {
             margin-bottom: 10px;
@@ -65,8 +81,27 @@
             text-shadow: 0 0 10px rgba(255, 107, 53, 0.6);
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
         }
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 12px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.95rem;
+        }
+        .score-badge.score { color: #ff9e00; border-color: rgba(255, 158, 0, 0.3); }
+        .score-badge.high { color: #c77dff; border-color: rgba(157, 78, 237, 0.3); }
+        .score-badge.level { color: #00ffff; border-color: rgba(0, 255, 255, 0.3); }
+        .score-badge.difficulty { font-weight: bold; }
+        .score-badge.difficulty.easy { color: #4ade80; border-color: rgba(34, 197, 94, 0.35); background: rgba(34, 197, 94, 0.08); }
+        .score-badge.difficulty.medium { color: #ff9e00; border-color: rgba(255, 158, 0, 0.35); background: rgba(255, 158, 0, 0.08); }
+        .score-badge.difficulty.hard { color: #f87171; border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.08); }
         #modeIndicator {
             font-size: 0.75rem;
             padding: 3px 10px;
@@ -83,36 +118,80 @@
             box-shadow: 0 0 10px rgba(157, 78, 237, 0.4);
         }
         canvas {
-            border: 3px solid #4a2a3a;
-            border-radius: 8px;
-            box-shadow: 0 0 30px rgba(255, 107, 53, 0.25), inset 0 0 30px rgba(157, 78, 237, 0.12);
-            background: radial-gradient(circle at center, #241525 0%, #0f0814 100%);
+            border: 3px solid transparent;
+            border-radius: 12px;
+            background:
+                linear-gradient(#241525, #0f0814) padding-box,
+                linear-gradient(135deg, #ff6b35, #9d4edd, #ff6b35) border-box;
+            box-shadow:
+                0 0 30px rgba(255, 107, 53, 0.25),
+                0 0 60px rgba(157, 78, 237, 0.15),
+                inset 0 0 30px rgba(157, 78, 237, 0.12);
             max-width: 95vw;
             max-height: 65vh;
             width: auto;
             height: auto;
             touch-action: none;
+            position: relative;
         }
+        #canvasWrap {
+            position: relative;
+            display: inline-block;
+        }
+        .corner-deco {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 158, 0, 0.8);
+            pointer-events: none;
+            z-index: 2;
+            box-shadow: 0 0 8px rgba(255, 158, 0, 0.4);
+        }
+        .corner-deco.tl { top: -3px; left: -3px; border-right: none; border-bottom: none; border-top-left-radius: 12px; }
+        .corner-deco.tr { top: -3px; right: -3px; border-left: none; border-bottom: none; border-top-right-radius: 12px; }
+        .corner-deco.bl { bottom: -3px; left: -3px; border-right: none; border-top: none; border-bottom-left-radius: 12px; }
+        .corner-deco.br { bottom: -3px; right: -3px; border-left: none; border-top: none; border-bottom-right-radius: 12px; }
         #info {
             margin-top: 15px;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: #c77dff;
             text-align: center;
+            opacity: 0.85;
+        }
+        .floating-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            opacity: 0.18;
+            pointer-events: none;
+            z-index: 0;
+            animation: orbFloat 12s ease-in-out infinite;
+        }
+        .orb-1 { width: 200px; height: 200px; background: #ff6b35; top: 10%; left: 10%; animation-delay: 0s; }
+        .orb-2 { width: 160px; height: 160px; background: #9d4edd; bottom: 15%; right: 12%; animation-delay: -4s; }
+        .orb-3 { width: 120px; height: 120px; background: #00ffff; top: 55%; left: 75%; animation-delay: -8s; }
+        @keyframes orbFloat {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(20px, -30px) scale(1.1); }
+            66% { transform: translate(-15px, 20px) scale(0.95); }
         }
         #gameOver {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(20, 5, 15, 0.92);
+            background: rgba(20, 5, 15, 0.95);
             padding: 28px 45px;
-            border-radius: 15px;
-            border: 2px solid #ff6b35;
-            box-shadow: 0 0 40px rgba(255, 107, 53, 0.4);
+            border-radius: 20px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            border-image: linear-gradient(135deg, #ff6b35, #9d4edd, #ff6b35) 1;
+            box-shadow: 0 0 50px rgba(255, 107, 53, 0.45), inset 0 0 20px rgba(157, 78, 237, 0.1);
             text-align: center;
             display: none;
             max-height: 92vh;
             overflow-y: auto;
+            z-index: 15;
         }
         #gameOver h2 {
             color: #ff9e00;
@@ -430,6 +509,121 @@
             font-size: 0.75rem;
             color: #aaa;
         }
+        .difficulty-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            margin: 15px auto 20px;
+            max-width: 320px;
+        }
+        .difficulty-card {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 16px 18px;
+            border-radius: 16px;
+            border: 2px solid transparent;
+            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.25s;
+            position: relative;
+            overflow: hidden;
+        }
+        .difficulty-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            opacity: 0;
+            transition: opacity 0.25s;
+            pointer-events: none;
+        }
+        .difficulty-card:hover {
+            transform: translateY(-3px) scale(1.02);
+        }
+        .difficulty-card:hover::before {
+            opacity: 1;
+        }
+        .difficulty-card.easy {
+            border-color: rgba(34, 197, 94, 0.4);
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.12);
+        }
+        .difficulty-card.easy::before {
+            background: linear-gradient(135deg, rgba(34,197,94,0.12), rgba(34,197,94,0.04));
+        }
+        .difficulty-card.easy:hover {
+            border-color: #22c55e;
+            box-shadow: 0 0 25px rgba(34, 197, 94, 0.4);
+        }
+        .difficulty-card.medium {
+            border-color: rgba(255, 158, 0, 0.4);
+            box-shadow: 0 0 15px rgba(255, 158, 0, 0.12);
+        }
+        .difficulty-card.medium::before {
+            background: linear-gradient(135deg, rgba(255,158,0,0.14), rgba(255,158,0,0.05));
+        }
+        .difficulty-card.medium:hover {
+            border-color: #ff9e00;
+            box-shadow: 0 0 25px rgba(255, 158, 0, 0.4);
+        }
+        .difficulty-card.hard {
+            border-color: rgba(239, 68, 68, 0.4);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.12);
+        }
+        .difficulty-card.hard::before {
+            background: linear-gradient(135deg, rgba(239,68,68,0.14), rgba(239,68,68,0.05));
+        }
+        .difficulty-card.hard:hover {
+            border-color: #ef4444;
+            box-shadow: 0 0 25px rgba(239, 68, 68, 0.4);
+        }
+        .difficulty-card .difficulty-icon {
+            font-size: 1.8rem;
+            margin-bottom: 6px;
+        }
+        .difficulty-card .difficulty-name {
+            font-size: 1.15rem;
+            font-weight: bold;
+            margin-bottom: 3px;
+        }
+        .difficulty-card .difficulty-desc {
+            font-size: 0.8rem;
+            color: #bbb;
+            margin-bottom: 4px;
+        }
+        .difficulty-card .difficulty-stat {
+            font-size: 0.7rem;
+            padding: 3px 10px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.08);
+            color: #aaa;
+        }
+        .difficulty-card.easy .difficulty-name { color: #4ade80; text-shadow: 0 0 10px rgba(34,197,94,0.5); }
+        .difficulty-card.medium .difficulty-name { color: #ff9e00; text-shadow: 0 0 10px rgba(255,158,0,0.5); }
+        .difficulty-card.hard .difficulty-name { color: #f87171; text-shadow: 0 0 10px rgba(239,68,68,0.5); }
+        #difficultySelect {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(40, 10, 20, 0.95), rgba(25, 5, 40, 0.95));
+            padding: 35px 40px;
+            border-radius: 24px;
+            border: 2px solid rgba(255, 107, 53, 0.35);
+            box-shadow: 0 0 60px rgba(255, 107, 53, 0.22), inset 0 0 30px rgba(157, 78, 237, 0.1);
+            text-align: center;
+            z-index: 11;
+            display: none;
+            min-width: 340px;
+            max-width: 90vw;
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+        #difficultySelect h2 {
+            color: #ff9e00;
+            margin-bottom: 8px;
+            text-shadow: 0 0 15px #ff6b35;
+        }
         .menu-actions {
             display: flex;
             gap: 12px;
@@ -617,10 +811,16 @@
     </style>
 </head>
 <body>
+    <div class="floating-orb orb-1"></div>
+    <div class="floating-orb orb-2"></div>
+    <div class="floating-orb orb-3"></div>
     <h1 id="gameTitle">🐍 霓虹贪吃蛇</h1>
     <div id="playerBar">玩家: <span id="playerName">—</span><button onclick="changePlayerName()">改名</button></div>
     <div id="scoreBoard">
-        <span id="scoreLabel">得分:</span> <span id="score">0</span> | 最高分: <span id="highScore">0</span>
+        <span class="score-badge score"><span>🍎</span><span id="scoreLabel">得分:</span> <span id="score">0</span></span>
+        <span class="score-badge high"><span>👑</span> 最高: <span id="highScore">0</span></span>
+        <span class="score-badge level" id="levelBadge" style="display:none"><span>🏰</span> 关卡 <span id="levelBadgeNum">1</span></span>
+        <span class="score-badge difficulty" id="difficultyBadge" style="display:none"><span id="difficultyBadgeIcon">🌱</span> <span id="difficultyBadgeName">简单</span></span>
         <span id="modeIndicator" title="点击切换控制模式">检测中...</span>
     </div>
 
@@ -641,7 +841,7 @@
         </div>
 
         <div class="mode-grid">
-            <button class="mode-card endless" onclick="selectMode('endless')">
+            <button class="mode-card endless" onclick="showDifficultySelect()">
                 <div class="mode-icon">♾️</div>
                 <div class="mode-name">无尽模式</div>
                 <div class="mode-desc">一条命挑战最高分</div>
@@ -710,7 +910,39 @@
         <button onclick="backToMenu()" style="margin-top: 15px; background: linear-gradient(135deg, #444, #666);">返回主菜单</button>
     </div>
 
-    <canvas id="gameCanvas" width="600" height="600"></canvas>
+    <div id="difficultySelect">
+        <h2>选择难度</h2>
+        <p class="setup-tip">中等和困难模式会出现障碍物</p>
+        <div class="difficulty-grid">
+            <button class="difficulty-card easy" onclick="startEndless('easy')">
+                <div class="difficulty-icon">🌱</div>
+                <div class="difficulty-name">简单</div>
+                <div class="difficulty-desc">无障碍物，轻松上手</div>
+                <div class="difficulty-stat">速度: 标准</div>
+            </button>
+            <button class="difficulty-card medium" onclick="startEndless('medium')">
+                <div class="difficulty-icon">🔥</div>
+                <div class="difficulty-name">中等</div>
+                <div class="difficulty-desc">少量障碍物</div>
+                <div class="difficulty-stat">速度: 较快</div>
+            </button>
+            <button class="difficulty-card hard" onclick="startEndless('hard')">
+                <div class="difficulty-icon">☠️</div>
+                <div class="difficulty-name">困难</div>
+                <div class="difficulty-desc">大量障碍物 + 更快节奏</div>
+                <div class="difficulty-stat">速度: 极快</div>
+            </button>
+        </div>
+        <button onclick="backToMenu()" style="margin-top: 15px; background: linear-gradient(135deg, #444, #666);">返回主菜单</button>
+    </div>
+
+    <div id="canvasWrap">
+        <div class="corner-deco tl"></div>
+        <div class="corner-deco tr"></div>
+        <div class="corner-deco bl"></div>
+        <div class="corner-deco br"></div>
+        <canvas id="gameCanvas" width="600" height="600"></canvas>
+    </div>
 
     <div id="mobileControls">
         <div class="dpad-row">
@@ -763,9 +995,22 @@
         const playerBarEl = document.getElementById('playerBar');
         const mobileControlsEl = document.getElementById('mobileControls');
         const controlModeBarEl = document.getElementById('controlModeBar');
+        const difficultySelectEl = document.getElementById('difficultySelect');
+        const levelBadgeEl = document.getElementById('levelBadge');
+        const levelBadgeNumEl = document.getElementById('levelBadgeNum');
+        const difficultyBadgeEl = document.getElementById('difficultyBadge');
+        const difficultyBadgeIconEl = document.getElementById('difficultyBadgeIcon');
+        const difficultyBadgeNameEl = document.getElementById('difficultyBadgeName');
 
         const gridSize = 20;
         const tileCount = canvas.width / gridSize;
+
+        const DIFFICULTY = {
+            easy: { name: '简单', obstacleCount: 0, baseDelay: 120, speedUp: 0, color: '#4ade80' },
+            medium: { name: '中等', obstacleCount: 8, baseDelay: 100, speedUp: 2, color: '#ff9e00' },
+            hard: { name: '困难', obstacleCount: 18, baseDelay: 80, speedUp: 4, color: '#f87171' }
+        };
+        let endlessDifficulty = null;
         const endlessBoard = loadLeaderboard('endless');
         const highScore = endlessBoard.length > 0 ? endlessBoard[0].score : 0;
         highScoreEl.textContent = highScore;
@@ -1392,6 +1637,19 @@
             renderLeaderboard('level', levelBoard, currentMode === 'level' ? currentScore : null, currentLevel);
         }
 
+        function showDifficultySelect() {
+            startMenuEl.style.display = 'none';
+            nameSetupEl.style.display = 'none';
+            rankingScreenEl.style.display = 'none';
+            levelSelectEl.style.display = 'none';
+            difficultySelectEl.style.display = 'block';
+        }
+
+        function startEndless(difficulty) {
+            endlessDifficulty = difficulty;
+            selectMode('endless');
+        }
+
         function selectMode(mode, startLevel = 1) {
             gameMode = mode;
             startMenuLevel = startLevel;
@@ -1399,6 +1657,7 @@
             levelSelectEl.style.display = 'none';
             nameSetupEl.style.display = 'none';
             rankingScreenEl.style.display = 'none';
+            difficultySelectEl.style.display = 'none';
             canvas.style.display = 'block';
             playerBarEl.style.display = 'block';
             gameTitleEl.style.opacity = '0';
@@ -1525,6 +1784,20 @@
             for (let i = 0; i < count; i++) spawnFood();
         }
 
+        function getEndlessBaseDelay() {
+            if (gameMode === 'endless' && endlessDifficulty && DIFFICULTY[endlessDifficulty]) {
+                return DIFFICULTY[endlessDifficulty].baseDelay;
+            }
+            return 100;
+        }
+
+        function getEndlessSpeedUp() {
+            if (gameMode === 'endless' && endlessDifficulty) {
+                return DIFFICULTY[endlessDifficulty].speedUp;
+            }
+            return 0;
+        }
+
         function initGame() {
             snake = [
                 { x: 10 * gridSize, y: 10 * gridSize },
@@ -1536,7 +1809,7 @@
             nextDx = gridSize;
             nextDy = 0;
             score = 0;
-            scoreEl.textContent = formatScoreBoard();
+            formatScoreBoard();
             particles = [];
             foods = [];
             obstacles = [];
@@ -1550,18 +1823,50 @@
                 levelTarget = getLevelTarget(level);
                 generateObstacles(getObstacleCountForLevel(level));
                 spawnFoods(getFoodsOnMapForLevel(level));
+            } else if (gameMode === 'endless' && endlessDifficulty) {
+                const d = DIFFICULTY[endlessDifficulty];
+                if (d.obstacleCount > 0) {
+                    generateObstacles(d.obstacleCount);
+                }
+                spawnFoods(1);
             } else {
                 spawnFoods(1);
             }
+
+            // 设置初始速度
+            if (gameLoopId) clearInterval(gameLoopId);
+            gameLoopId = setInterval(gameLoop, getEndlessBaseDelay());
+        }
+
+        function updateScoreBadges() {
+            if (gameMode === 'level') {
+                if (levelBadgeEl) { levelBadgeEl.style.display = 'inline-flex'; levelBadgeNumEl.textContent = level; }
+                if (difficultyBadgeEl) difficultyBadgeEl.style.display = 'none';
+                scoreLabelEl.textContent = '豆子:';
+                scoreEl.textContent = `${levelEaten}/${levelTarget}`;
+                return;
+            }
+            if (gameMode === 'endless' && endlessDifficulty) {
+                if (difficultyBadgeEl) {
+                    difficultyBadgeEl.style.display = 'inline-flex';
+                    const d = DIFFICULTY[endlessDifficulty];
+                    difficultyBadgeEl.className = 'score-badge difficulty ' + endlessDifficulty;
+                    difficultyBadgeIconEl.textContent = endlessDifficulty === 'easy' ? '🌱' : endlessDifficulty === 'medium' ? '🔥' : '☠️';
+                    difficultyBadgeNameEl.textContent = d.name;
+                    difficultyBadgeNameEl.style.color = d.color;
+                }
+                if (levelBadgeEl) levelBadgeEl.style.display = 'none';
+                scoreLabelEl.textContent = '得分:';
+                scoreEl.textContent = score;
+                return;
+            }
+            scoreLabelEl.textContent = '得分:';
+            scoreEl.textContent = score;
         }
 
         function formatScoreBoard() {
-            if (gameMode === 'level') {
-                scoreLabelEl.textContent = '闯关:';
-                return `关卡 ${level} | 豆子 ${levelEaten}/${levelTarget}`;
-            }
-            scoreLabelEl.textContent = '得分:';
-            return `${score}`;
+            updateScoreBadges();
+            return '';
         }
 
         function createParticles(x, y, color) {
@@ -1606,7 +1911,11 @@
         }
 
         function drawGrid() {
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            // 根据难度微调网格氛围：困难模式网格更暗红
+            let alpha = 0.03;
+            if (gameMode === 'endless' && endlessDifficulty === 'hard') alpha = 0.045;
+            else if (gameMode === 'endless' && endlessDifficulty === 'medium') alpha = 0.035;
+            ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
             ctx.lineWidth = 1;
             for (let i = 0; i <= tileCount; i++) {
                 ctx.beginPath();
@@ -1618,6 +1927,16 @@
                 ctx.lineTo(canvas.width, i * gridSize);
                 ctx.stroke();
             }
+            // 中心弱光晕，增强霓虹感
+            const grad = ctx.createRadialGradient(canvas.width/2, canvas.height/2, 40, canvas.width/2, canvas.height/2, canvas.width/1.5);
+            let c1 = 'rgba(255, 107, 53, 0.04)';
+            let c2 = 'rgba(0,0,0,0)';
+            if (gameMode === 'endless' && endlessDifficulty === 'hard') { c1 = 'rgba(239, 68, 68, 0.05)'; }
+            else if (gameMode === 'endless' && endlessDifficulty === 'medium') { c1 = 'rgba(255, 158, 0, 0.045)'; }
+            grad.addColorStop(0, c1);
+            grad.addColorStop(1, c2);
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
 
         function drawSnake() {
@@ -1708,10 +2027,19 @@
                 const size = gridSize - 2;
 
                 ctx.save();
-                // 木头底色
-                ctx.fillStyle = '#8B5A2B';
+                // 受难度影响的危险色泽：困难模式偏红
+                let baseColor = '#8B5A2B';
+                let glowColor = '#5C3A1E';
+                if (gameMode === 'endless' && endlessDifficulty === 'hard') {
+                    baseColor = '#8B3A2B';
+                    glowColor = '#5C1A1E';
+                } else if (gameMode === 'endless' && endlessDifficulty === 'medium') {
+                    baseColor = '#8B4A2B';
+                    glowColor = '#5C2A1E';
+                }
+                ctx.fillStyle = baseColor;
                 ctx.shadowBlur = 6;
-                ctx.shadowColor = '#5C3A1E';
+                ctx.shadowColor = glowColor;
                 ctx.beginPath();
                 ctx.roundRect(x, y, size, size, 3);
                 ctx.fill();
@@ -1790,11 +2118,26 @@
                 } else {
                     const missing = 1 - foods.length;
                     if (missing > 0) spawnFoods(missing);
+                    // 无尽模式每吃 50 分加速一次（困难模式更快）
+                    if (gameMode === 'endless' && endlessDifficulty) {
+                        const speedStep = getEndlessSpeedUp();
+                        if (speedStep > 0 && score > 0 && score % (speedStep * 10) === 0) {
+                            speedUpEndless();
+                        }
+                    }
                 }
-                scoreEl.textContent = formatScoreBoard();
+                formatScoreBoard();
             } else {
                 snake.pop();
             }
+        }
+
+        function speedUpEndless() {
+            if (gameLoopId) clearInterval(gameLoopId);
+            const base = getEndlessBaseDelay();
+            const reductions = Math.floor(score / (getEndlessSpeedUp() * 10));
+            const newDelay = Math.max(45, base - reductions * 2);
+            gameLoopId = setInterval(gameLoop, newDelay);
         }
 
         function levelUp() {
@@ -1807,7 +2150,7 @@
             levelTarget = getLevelTarget(level);
             foods = [];
             spawnFoods(getFoodsOnMapForLevel(level));
-            scoreEl.textContent = formatScoreBoard();
+            formatScoreBoard();
 
             // 过关音效
             playLevelUpSound();
@@ -1845,6 +2188,8 @@
 
             if (gameMode === 'level') {
                 finalScoreEl.innerHTML = `到达关卡 ${level}<br>得分 ${score}`;
+            } else if (gameMode === 'endless' && endlessDifficulty) {
+                finalScoreEl.innerHTML = `<span style="font-size:0.9rem;color:${DIFFICULTY[endlessDifficulty].color}">${DIFFICULTY[endlessDifficulty].name}模式</span><br>得分 ${score}`;
             } else {
                 finalScoreEl.textContent = score;
             }
@@ -1870,13 +2215,17 @@
             levelSelectEl.style.display = 'none';
             nameSetupEl.style.display = 'none';
             rankingScreenEl.style.display = 'none';
+            difficultySelectEl.style.display = 'none';
             startMenuEl.style.display = 'block';
             canvas.style.display = 'none';
             playerBarEl.style.display = 'none';
             if (mobileControlsEl) mobileControlsEl.classList.remove('active');
             if (controlModeBarEl) controlModeBarEl.classList.remove('active');
+            if (levelBadgeEl) levelBadgeEl.style.display = 'none';
+            if (difficultyBadgeEl) difficultyBadgeEl.style.display = 'none';
             gameTitleEl.style.opacity = '1';
             gameMode = null;
+            endlessDifficulty = null;
             stopMusic();
             // 清空画布
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1884,6 +2233,10 @@
 
         function restartGame() {
             playRespawnSound();
+            // 从无尽模式结束界面重新开始时，保持同一难度
+            if (gameMode === 'endless' && !endlessDifficulty) {
+                endlessDifficulty = 'easy';
+            }
             initGame();
             updateMobileControlUI();
             startMusic();
