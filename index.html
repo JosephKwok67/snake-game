@@ -4,25 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>霓虹贪吃蛇</title>
-    <!-- Firebase SDK (compat 版，可直接配合普通 script 使用) -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <!-- Supabase SDK（国内访问更稳定，publishable key 设计为可公开，安全由 RLS 策略控制） -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Firebase 配置（web apiKey 设计为可公开，安全由 Firestore 规则控制）
-        const firebaseConfig = {
-            apiKey: "AIzaSyBzuxDyBBpfVGfDmZtFmuYRutY8bVyq94w",
-            authDomain: "snake-game-jk.firebaseapp.com",
-            projectId: "snake-game-jk",
-            storageBucket: "snake-game-jk.firebasestorage.app",
-            messagingSenderId: "908888924766",
-            appId: "1:908888924766:web:9229a670a4907459a10acf"
-        };
+        // Supabase 配置
+        const SUPABASE_URL = "https://rlowdgmgbcsgeclurcuz.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_hfd1G9I8Btw9rziweGNpRQ_DLhSS5dx";
         let db = null;
         try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
+            db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } catch (e) {
-            console.warn('Firebase 初始化失败，全球排行榜不可用：', e);
+            console.warn('Supabase 初始化失败，全球排行榜不可用：', e);
         }
     </script>
     <style>
@@ -32,7 +24,7 @@
             box-sizing: border-box;
         }
         body {
-            background: #0a0a12;
+            background: radial-gradient(ellipse at top, #1a0b1a 0%, #0f0814 50%, #0a0a12 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -45,7 +37,7 @@
         h1 {
             margin-bottom: 10px;
             font-size: 2rem;
-            text-shadow: 0 0 20px #ff00ff, 0 0 40px #00ffff;
+            text-shadow: 0 0 20px #ff6b35, 0 0 40px #9d4edd;
             letter-spacing: 4px;
         }
         #playerBar {
@@ -68,8 +60,8 @@
         #scoreBoard {
             margin-bottom: 10px;
             font-size: 1.2rem;
-            color: #00ffff;
-            text-shadow: 0 0 10px #00ffff;
+            color: #ff9e00;
+            text-shadow: 0 0 10px rgba(255, 107, 53, 0.6);
             display: flex;
             align-items: center;
             gap: 15px;
@@ -78,22 +70,22 @@
             font-size: 0.75rem;
             padding: 3px 10px;
             border-radius: 12px;
-            background: rgba(255, 0, 255, 0.15);
-            color: #ff00ff;
-            border: 1px solid rgba(255, 0, 255, 0.4);
+            background: rgba(157, 78, 237, 0.15);
+            color: #c77dff;
+            border: 1px solid rgba(157, 78, 237, 0.4);
             cursor: pointer;
             user-select: none;
             transition: all 0.2s;
         }
         #modeIndicator:hover {
-            background: rgba(255, 0, 255, 0.3);
-            box-shadow: 0 0 10px rgba(255, 0, 255, 0.4);
+            background: rgba(157, 78, 237, 0.3);
+            box-shadow: 0 0 10px rgba(157, 78, 237, 0.4);
         }
         canvas {
-            border: 3px solid #333;
+            border: 3px solid #4a2a3a;
             border-radius: 8px;
-            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3), inset 0 0 30px rgba(255, 0, 255, 0.1);
-            background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a12 100%);
+            box-shadow: 0 0 30px rgba(255, 107, 53, 0.25), inset 0 0 30px rgba(157, 78, 237, 0.12);
+            background: radial-gradient(circle at center, #241525 0%, #0f0814 100%);
             max-width: 95vw;
             max-height: 65vh;
             width: auto;
@@ -103,7 +95,7 @@
         #info {
             margin-top: 15px;
             font-size: 0.9rem;
-            color: #888;
+            color: #c77dff;
             text-align: center;
         }
         #gameOver {
@@ -111,20 +103,20 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(20, 5, 15, 0.92);
             padding: 28px 45px;
             border-radius: 15px;
-            border: 2px solid #ff00ff;
-            box-shadow: 0 0 40px rgba(255, 0, 255, 0.5);
+            border: 2px solid #ff6b35;
+            box-shadow: 0 0 40px rgba(255, 107, 53, 0.4);
             text-align: center;
             display: none;
             max-height: 92vh;
             overflow-y: auto;
         }
         #gameOver h2 {
-            color: #ff00ff;
+            color: #ff9e00;
             margin-bottom: 15px;
-            text-shadow: 0 0 15px #ff00ff;
+            text-shadow: 0 0 15px #ff6b35;
         }
         #gameOver p {
             margin-bottom: 20px;
@@ -133,7 +125,7 @@
         button {
             padding: 10px 25px;
             font-size: 1rem;
-            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            background: linear-gradient(45deg, #ff6b35, #9d4edd);
             border: none;
             border-radius: 25px;
             color: #fff;
@@ -144,7 +136,7 @@
         }
         button:hover {
             transform: scale(1.05);
-            box-shadow: 0 0 25px rgba(255, 0, 255, 0.6);
+            box-shadow: 0 0 25px rgba(255, 107, 53, 0.55);
         }
         #leaderboardEndless, #leaderboardLevel, #globalLeaderboardEndless, #globalLeaderboardLevel {
             margin: 12px 0;
@@ -153,29 +145,29 @@
         }
         #leaderboardEndless h3 {
             text-align: center;
-            color: #00ffff;
-            text-shadow: 0 0 10px #00ffff;
+            color: #ff9e00;
+            text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
             margin-bottom: 10px;
             font-size: 1rem;
         }
         #leaderboardLevel h3 {
             text-align: center;
-            color: #ff00ff;
-            text-shadow: 0 0 10px #ff00ff;
+            color: #c77dff;
+            text-shadow: 0 0 10px rgba(157, 78, 237, 0.5);
             margin-bottom: 10px;
             font-size: 1rem;
         }
         #globalLeaderboardEndless h3 {
             text-align: center;
-            color: #00ffff;
-            text-shadow: 0 0 10px #00ffff;
+            color: #ff9e00;
+            text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
             margin-bottom: 10px;
             font-size: 1rem;
         }
         #globalLeaderboardLevel h3 {
             text-align: center;
-            color: #ff00ff;
-            text-shadow: 0 0 10px #ff00ff;
+            color: #c77dff;
+            text-shadow: 0 0 10px rgba(157, 78, 237, 0.5);
             margin-bottom: 10px;
             font-size: 1rem;
         }
@@ -206,12 +198,12 @@
             color: #cd7f32;
         }
         #leaderboardEndless li.current, #leaderboardLevel li.current {
-            outline: 1px solid #ff00ff;
-            box-shadow: 0 0 10px rgba(255, 0, 255, 0.4);
+            outline: 1px solid #ff6b35;
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.4);
         }
         #globalLeaderboardEndless li.current, #globalLeaderboardLevel li.current {
-            outline: 1px solid #00ffff;
-            box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
+            outline: 1px solid #ff9e00;
+            box-shadow: 0 0 10px rgba(255, 158, 0, 0.4);
         }
         #recordNotice {
             color: #ffd700;
@@ -226,20 +218,20 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.92);
+            background: linear-gradient(135deg, rgba(40, 10, 20, 0.95), rgba(25, 5, 40, 0.95));
             padding: 35px 45px;
             border-radius: 20px;
-            border: 2px solid #ff00ff;
-            box-shadow: 0 0 50px rgba(255, 0, 255, 0.4);
+            border: 2px solid rgba(157, 78, 237, 0.4);
+            box-shadow: 0 0 50px rgba(157, 78, 237, 0.35);
             text-align: center;
             z-index: 11;
             display: none;
             min-width: 320px;
         }
         #levelSelect h2 {
-            color: #ff00ff;
+            color: #ff9e00;
             margin-bottom: 20px;
-            text-shadow: 0 0 15px #ff00ff;
+            text-shadow: 0 0 15px #ff6b35;
         }
         #levelGrid {
             display: grid;
@@ -285,7 +277,7 @@
             transform: translateX(-50%);
             font-size: 1.6rem;
             z-index: 5;
-            text-shadow: 0 0 20px #ff00ff, 0 0 40px #00ffff;
+            text-shadow: 0 0 20px #ff6b35, 0 0 40px #9d4edd;
             transition: opacity 0.3s;
         }
         #startMenu {
@@ -293,11 +285,11 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, rgba(20, 0, 40, 0.95), rgba(0, 20, 40, 0.95));
+            background: linear-gradient(135deg, rgba(40, 10, 20, 0.95), rgba(25, 5, 40, 0.95));
             padding: 35px 40px;
             border-radius: 24px;
-            border: 2px solid rgba(0, 255, 255, 0.3);
-            box-shadow: 0 0 60px rgba(0, 255, 255, 0.25), inset 0 0 30px rgba(255, 0, 255, 0.08);
+            border: 2px solid rgba(255, 107, 53, 0.35);
+            box-shadow: 0 0 60px rgba(255, 107, 53, 0.22), inset 0 0 30px rgba(157, 78, 237, 0.1);
             text-align: center;
             z-index: 10;
             min-width: 340px;
@@ -319,7 +311,7 @@
         .menu-name {
             font-size: 2rem;
             font-weight: bold;
-            background: linear-gradient(90deg, #ff00ff, #00ffff, #ff00ff);
+            background: linear-gradient(90deg, #ff6b35, #ff9e00, #9d4edd, #ff6b35);
             background-size: 200% auto;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
@@ -367,8 +359,8 @@
         }
         .player-name {
             font-size: 1.1rem;
-            color: #00ffff;
-            text-shadow: 0 0 8px #00ffff;
+            color: #ff9e00;
+            text-shadow: 0 0 8px #ff6b35;
             font-weight: bold;
         }
         .icon-btn {
@@ -407,22 +399,22 @@
             transform: translateY(-4px);
         }
         .mode-card.endless {
-            border-color: rgba(0, 255, 255, 0.3);
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+            border-color: rgba(255, 107, 53, 0.4);
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.15);
         }
         .mode-card.endless:hover {
-            border-color: #00ffff;
-            box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
-            background: linear-gradient(135deg, rgba(0,255,255,0.15), rgba(0,255,255,0.05));
+            border-color: #ff6b35;
+            box-shadow: 0 0 25px rgba(255, 107, 53, 0.45);
+            background: linear-gradient(135deg, rgba(255,107,53,0.18), rgba(255,158,0,0.06));
         }
         .mode-card.level {
-            border-color: rgba(255, 0, 255, 0.3);
-            box-shadow: 0 0 15px rgba(255, 0, 255, 0.1);
+            border-color: rgba(157, 78, 237, 0.4);
+            box-shadow: 0 0 15px rgba(157, 78, 237, 0.15);
         }
         .mode-card.level:hover {
-            border-color: #ff00ff;
-            box-shadow: 0 0 25px rgba(255, 0, 255, 0.4);
-            background: linear-gradient(135deg, rgba(255,0,255,0.15), rgba(255,0,255,0.05));
+            border-color: #9d4edd;
+            box-shadow: 0 0 25px rgba(157, 78, 237, 0.45);
+            background: linear-gradient(135deg, rgba(157,78,237,0.18), rgba(123,44,191,0.06));
         }
         .mode-card .mode-icon {
             font-size: 2.2rem;
@@ -465,11 +457,11 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, rgba(20, 0, 40, 0.95), rgba(0, 20, 40, 0.95));
+            background: linear-gradient(135deg, rgba(40, 10, 20, 0.95), rgba(25, 5, 40, 0.95));
             padding: 35px 40px;
             border-radius: 24px;
-            border: 2px solid rgba(255, 0, 255, 0.3);
-            box-shadow: 0 0 60px rgba(255, 0, 255, 0.25), inset 0 0 30px rgba(0, 255, 255, 0.08);
+            border: 2px solid rgba(157, 78, 237, 0.35);
+            box-shadow: 0 0 60px rgba(157, 78, 237, 0.25), inset 0 0 30px rgba(255, 107, 53, 0.08);
             text-align: center;
             z-index: 12;
             display: none;
@@ -479,8 +471,8 @@
             overflow-y: auto;
         }
         #nameSetup h2, #rankingScreen h2 {
-            color: #ff00ff;
-            text-shadow: 0 0 15px #ff00ff;
+            color: #ff9e00;
+            text-shadow: 0 0 15px #ff6b35;
             margin-bottom: 10px;
         }
         .setup-tip {
@@ -501,8 +493,8 @@
             margin-bottom: 20px;
         }
         #nameInput:focus {
-            border-color: #00ffff;
-            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+            border-color: #ff6b35;
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.35);
         }
         .setup-actions {
             display: flex;
@@ -532,20 +524,32 @@
             transition: all 0.2s;
         }
         .ranking-tab.active {
-            border-color: #00ffff;
-            color: #00ffff;
-            background: rgba(0,255,255,0.1);
-            box-shadow: 0 0 15px rgba(0,255,255,0.2);
+            border-color: #ff6b35;
+            color: #ff9e00;
+            background: rgba(255, 107, 53, 0.12);
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.25);
         }
         .ranking-tab:hover {
-            border-color: #ff00ff;
-            color: #ff00ff;
+            border-color: #9d4edd;
+            color: #c77dff;
         }
         .ranking-panel {
             display: none;
         }
         .ranking-panel.active {
             display: block;
+        }
+        .lb-status {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #ff6b6b;
+            margin-top: 6px;
+            min-height: 1.2em;
+        }
+        .score-time {
+            font-size: 0.7rem;
+            color: #888;
+            margin-left: 4px;
         }
     </style>
 </head>
@@ -616,6 +620,7 @@
             <div id="globalLeaderboardEndless">
                 <h3>🌍 无尽模式全球榜 TOP 10</h3>
                 <ul id="globalLeaderboardEndlessList"><li>加载中...</li></ul>
+                <p id="globalLeaderboardEndlessStatus" class="lb-status"></p>
             </div>
             <div id="leaderboardEndless">
                 <h3>🏅 本机无尽榜 TOP 5</h3>
@@ -626,6 +631,7 @@
             <div id="globalLeaderboardLevel">
                 <h3>🌍 闯关模式全球榜 TOP 10</h3>
                 <ul id="globalLeaderboardLevelList"><li>加载中...</li></ul>
+                <p id="globalLeaderboardLevelStatus" class="lb-status"></p>
             </div>
             <div id="leaderboardLevel">
                 <h3>🏅 本机闯关榜 TOP 5</h3>
@@ -711,7 +717,7 @@
         let touchStartTime = 0;
         const SWIPE_THRESHOLD = 30;
 
-        /* ===================== 全球排行榜（Firebase Firestore） ===================== */
+        /* ===================== 全球排行榜（Supabase） ===================== */
         function getPlayerName() {
             let n = localStorage.getItem('snakePlayerName');
             if (!n) {
@@ -785,91 +791,153 @@
             }
         }
 
+        // 提交状态提示
+        let lastSubmitStatus = { success: true, message: '' };
+
         async function submitGlobalScore(s, mode, reachedLevel) {
-            if (!db || s <= 0) return;
+            lastSubmitStatus = { success: true, message: '' };
+            if (!db || s <= 0) {
+                lastSubmitStatus = { success: false, message: '数据库未连接' };
+                return;
+            }
             try {
-                await db.collection('scores').add({
+                const { error } = await db.from('scores').insert({
                     name: getPlayerName(),
                     mode: mode,
                     score: s,
-                    level: mode === 'level' ? reachedLevel : 0,
-                    ts: firebase.firestore.FieldValue.serverTimestamp()
+                    level: mode === 'level' ? reachedLevel : 0
                 });
+                if (error) {
+                    lastSubmitStatus = { success: false, message: '提交失败：' + error.message };
+                    console.warn('提交全球分数失败：', error.message);
+                } else {
+                    lastSubmitStatus = { success: true, message: '分数已提交' };
+                }
             } catch (e) {
+                lastSubmitStatus = { success: false, message: '网络异常，提交失败' };
                 console.warn('提交全球分数失败：', e);
             }
         }
 
+        function formatTimeAgo(ts) {
+            if (!ts) return '';
+            const now = Date.now();
+            const then = new Date(ts).getTime();
+            if (isNaN(then)) return '';
+            const diff = Math.floor((now - then) / 1000);
+            if (diff < 60) return '刚刚';
+            if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`;
+            if (diff < 2592000) return `${Math.floor(diff / 86400)}天前`;
+            return '很久以前';
+        }
+
+        function dedupeScores(rows, mode) {
+            const bestByName = {};
+            rows.forEach(r => {
+                const key = r.name || '匿名';
+                const existing = bestByName[key];
+                if (!existing) {
+                    bestByName[key] = r;
+                    return;
+                }
+                if (mode === 'level') {
+                    if (r.level > existing.level || (r.level === existing.level && r.score > existing.score)) {
+                        bestByName[key] = r;
+                    }
+                } else {
+                    if (r.score > existing.score) {
+                        bestByName[key] = r;
+                    }
+                }
+            });
+            return Object.values(bestByName);
+        }
+
+        function renderScoreRow(r, i, mode, me) {
+            const li = document.createElement('li');
+            li.className = 'rank-' + (i + 1);
+            if (r.name === me) li.classList.add('current');
+            const safeName = (r.name || '匿名').toString().replace(/</g, '&lt;');
+            const levelText = mode === 'level' && r.level ? ` 关卡${r.level}` : '';
+            const timeText = formatTimeAgo(r.created_at);
+            const timeHtml = timeText ? `<span class="score-time">${timeText}</span>` : '';
+            li.innerHTML = `<span>#${i + 1}  ${safeName}${levelText} ${timeHtml}</span><span>${r.score} 分</span>`;
+            return li;
+        }
+
         async function renderGlobalLeaderboardEndless() {
             const ul = document.getElementById('globalLeaderboardEndlessList');
+            const statusEl = document.getElementById('globalLeaderboardEndlessStatus');
             if (!ul) return;
             if (!db) {
-                ul.innerHTML = '<li>全球排行榜不可用（无法连接 Firebase）</li>';
+                ul.innerHTML = '<li>全球排行榜不可用（无法连接数据库）</li>';
+                if (statusEl) statusEl.textContent = '';
                 return;
             }
             ul.innerHTML = '<li>加载中...</li>';
             try {
-                const snap = await db.collection('scores')
-                    .where('mode', '==', 'endless')
-                    .orderBy('score', 'desc')
-                    .limit(10)
-                    .get();
-                const rows = [];
-                snap.forEach(doc => rows.push(doc.data()));
-                if (rows.length === 0) {
+                const { data: rows, error } = await db.from('scores')
+                    .select('name,score,created_at')
+                    .eq('mode', 'endless')
+                    .order('score', { ascending: false })
+                    .limit(100);
+                if (error) throw error;
+                const deduped = dedupeScores(rows || [], 'endless')
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 10);
+                if (deduped.length === 0) {
                     ul.innerHTML = '<li>还没有记录，快来抢第一名！</li>';
+                    if (statusEl) statusEl.textContent = '';
                     return;
                 }
                 ul.innerHTML = '';
                 const me = getPlayerName();
-                rows.forEach((r, i) => {
-                    const li = document.createElement('li');
-                    li.className = 'rank-' + (i + 1);
-                    if (r.name === me) li.classList.add('current');
-                    const safeName = (r.name || '匿名').toString().replace(/</g, '&lt;');
-                    li.innerHTML = `<span>#${i + 1}  ${safeName}</span><span>${r.score} 分</span>`;
-                    ul.appendChild(li);
-                });
+                deduped.forEach((r, i) => ul.appendChild(renderScoreRow(r, i, 'endless', me)));
+                if (statusEl) statusEl.textContent = lastSubmitStatus.success ? '' : lastSubmitStatus.message;
             } catch (e) {
                 ul.innerHTML = '<li>全球排行榜加载失败</li>';
+                if (statusEl) statusEl.textContent = '加载失败，请检查网络';
                 console.warn(e);
             }
         }
 
         async function renderGlobalLeaderboardLevel() {
             const ul = document.getElementById('globalLeaderboardLevelList');
+            const statusEl = document.getElementById('globalLeaderboardLevelStatus');
             if (!ul) return;
             if (!db) {
-                ul.innerHTML = '<li>全球排行榜不可用（无法连接 Firebase）</li>';
+                ul.innerHTML = '<li>全球排行榜不可用（无法连接数据库）</li>';
+                if (statusEl) statusEl.textContent = '';
                 return;
             }
             ul.innerHTML = '<li>加载中...</li>';
             try {
-                const snap = await db.collection('scores')
-                    .where('mode', '==', 'level')
-                    .orderBy('level', 'desc')
-                    .orderBy('score', 'desc')
-                    .limit(10)
-                    .get();
-                const rows = [];
-                snap.forEach(doc => rows.push(doc.data()));
-                if (rows.length === 0) {
+                const { data: rows, error } = await db.from('scores')
+                    .select('name,score,level,created_at')
+                    .eq('mode', 'level')
+                    .order('level', { ascending: false })
+                    .order('score', { ascending: false })
+                    .limit(100);
+                if (error) throw error;
+                const deduped = dedupeScores(rows || [], 'level')
+                    .sort((a, b) => {
+                        if (b.level !== a.level) return b.level - a.level;
+                        return b.score - a.score;
+                    })
+                    .slice(0, 10);
+                if (deduped.length === 0) {
                     ul.innerHTML = '<li>还没有记录，快来抢第一名！</li>';
+                    if (statusEl) statusEl.textContent = '';
                     return;
                 }
                 ul.innerHTML = '';
                 const me = getPlayerName();
-                rows.forEach((r, i) => {
-                    const li = document.createElement('li');
-                    li.className = 'rank-' + (i + 1);
-                    if (r.name === me) li.classList.add('current');
-                    const safeName = (r.name || '匿名').toString().replace(/</g, '&lt;');
-                    const levelText = r.level ? ` 关卡${r.level}` : '';
-                    li.innerHTML = `<span>#${i + 1}  ${safeName}${levelText}</span><span>${r.score} 分</span>`;
-                    ul.appendChild(li);
-                });
+                deduped.forEach((r, i) => ul.appendChild(renderScoreRow(r, i, 'level', me)));
+                if (statusEl) statusEl.textContent = lastSubmitStatus.success ? '' : lastSubmitStatus.message;
             } catch (e) {
                 ul.innerHTML = '<li>全球排行榜加载失败</li>';
+                if (statusEl) statusEl.textContent = '加载失败，请检查网络';
                 console.warn(e);
             }
         }
@@ -1416,8 +1484,9 @@
 
         function drawSnake() {
             snake.forEach((segment, index) => {
-                const segmentHue = (hue + index * 12) % 360;
-                const color = `hsl(${segmentHue}, 100%, 60%)`;
+                // 暖色调渐变：橙 -> 红 -> 紫，避免青/绿
+                const segmentHue = (30 + index * 12 + hue) % 300;
+                const color = `hsl(${segmentHue}, 100%, 62%)`;
                 const glowColor = `hsl(${segmentHue}, 100%, 40%)`;
 
                 ctx.save();
@@ -1465,10 +1534,10 @@
         function drawFood() {
             foodPulse += 0.08;
             const pulse = Math.sin(foodPulse) * 3;
-            const foodHue = (hue + 180) % 360;
+            const foodHue = (hue + 30) % 300;
 
             foods.forEach((food, index) => {
-                const color = `hsl(${(foodHue + index * 40) % 360}, 100%, 60%)`;
+                const color = `hsl(${(foodHue + index * 45) % 300}, 100%, 60%)`;
 
                 ctx.save();
                 ctx.fillStyle = color;
@@ -1570,7 +1639,7 @@
                 foods.splice(eatenIndex, 1);
                 score += 10 + (gameMode === 'level' ? level : 0);
                 levelEaten++;
-                createParticles(eatenFood.x, eatenFood.y, `hsl(${(hue + 180) % 360}, 100%, 60%)`);
+                createParticles(eatenFood.x, eatenFood.y, `hsl(${(hue + 45) % 300}, 100%, 60%)`);
                 playEatSound();
 
                 if (gameMode === 'level') {
