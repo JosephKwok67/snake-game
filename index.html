@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>霓虹贪吃蛇</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: #0a0a12;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+            overflow: hidden;
+        }
+        h1 {
+            margin-bottom: 10px;
+            font-size: 2rem;
+            text-shadow: 0 0 20px #ff00ff, 0 0 40px #00ffff;
+            letter-spacing: 4px;
+        }
+        #scoreBoard {
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+        }
+        canvas {
+            border: 3px solid #333;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3), inset 0 0 30px rgba(255, 0, 255, 0.1);
+            background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a12 100%);
+        }
+        #info {
+            margin-top: 15px;
+            font-size: 0.9rem;
+            color: #888;
+            text-align: center;
+        }
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.85);
+            padding: 30px 50px;
+            border-radius: 15px;
+            border: 2px solid #ff00ff;
+            box-shadow: 0 0 40px rgba(255, 0, 255, 0.5);
+            text-align: center;
+            display: none;
+        }
+        #gameOver h2 {
+            color: #ff00ff;
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px #ff00ff;
+        }
+        #gameOver p {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+        }
+        button {
+            padding: 10px 25px;
+            font-size: 1rem;
+            background: linear-gradient(45deg, #ff00ff, #00ffff);
+            border: none;
+            border-radius: 25px;
+            color: #fff;
+            cursor: pointer;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(255, 0, 255, 0.6);
+        }
+        #leaderboard {
+            margin: 15px 0;
+            text-align: left;
+            min-width: 220px;
+        }
+        #leaderboard h3 {
+            text-align: center;
+            color: #00ffff;
+            text-shadow: 0 0 10px #00ffff;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+        #leaderboard ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        #leaderboard li {
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin-bottom: 4px;
+            font-size: 0.95rem;
+            display: flex;
+            justify-content: space-between;
+        }
+        #leaderboard li.rank-1 {
+            background: rgba(255, 215, 0, 0.15);
+            color: #ffd700;
+            text-shadow: 0 0 8px #ffd700;
+        }
+        #leaderboard li.rank-2 {
+            background: rgba(192, 192, 192, 0.15);
+            color: #c0c0c0;
+        }
+        #leaderboard li.rank-3 {
+            background: rgba(205, 127, 50, 0.15);
+            color: #cd7f32;
+        }
+        #leaderboard li.current {
+            outline: 1px solid #ff00ff;
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.4);
+        }
+        #recordNotice {
+            color: #ffd700;
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-shadow: 0 0 15px #ffd700;
+            margin-bottom: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>🐍 霓虹贪吃蛇</h1>
+    <div id="scoreBoard">得分: <span id="score">0</span> | 最高分: <span id="highScore">0</span></div>
+    <canvas id="gameCanvas" width="600" height="600"></canvas>
+    <div id="info">方向键 / WASD 移动 | 空格键暂停 | R 键复活 | 撞墙会死</div>
+
+    <div id="gameOver">
+        <h2>游戏结束</h2>
+        <div id="recordNotice">🏆 新纪录！</div>
+        <p>最终得分: <span id="finalScore">0</span></p>
+        <div id="leaderboard">
+            <h3>🏅 排行榜 TOP 5</h3>
+            <ul id="leaderboardList"></ul>
+        </div>
+        <button onclick="restartGame()">重新开始</button>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const highScoreEl = document.getElementById('highScore');
+        const finalScoreEl = document.getElementById('finalScore');
+        const gameOverEl = document.getElementById('gameOver');
+        const leaderboardListEl = document.getElementById('leaderboardList');
+        const recordNoticeEl = document.getElementById('recordNotice');
+
+        const gridSize = 20;
+        const tileCount = canvas.width / gridSize;
+        const highScore = localStorage.getItem('snakeHighScore') || 0;
+        highScoreEl.textContent = highScore;
+
+        let snake = [];
+        let food = {};
+        let dx = gridSize;
+        let dy = 0;
+        let nextDx = gridSize;
+        let nextDy = 0;
+        let score = 0;
+        let gameRunning = false;
+        let gamePaused = false;
+        let particles = [];
+        let hue = 0;
+        let foodPulse = 0;
+
+        // Web Audio API 音效
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new AudioContext();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playTone(freq, type, duration, fade = true) {
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            if (fade) {
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            } else {
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            }
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playEatSound() {
+            if (!audioCtx) return;
+            // 分数越高，音效越激进：音高更高、音符更短、波形更尖锐
+            const level = Math.min(Math.floor(score / 50), 10);
+            const baseFreq = 440 + score * 3 + level * 80;
+            const duration = Math.max(0.05, 0.15 - level * 0.008);
+            const waveType = level >= 5 ? 'sawtooth' : 'square';
+            const gap = Math.max(25, 55 - level * 3);
+
+            playTone(baseFreq, waveType, duration);
+            setTimeout(() => playTone(baseFreq * 1.25, waveType, duration), gap);
+            setTimeout(() => playTone(baseFreq * 1.5, waveType, duration * 1.2), gap * 2);
+
+            // 高分后增加额外装饰音
+            if (level >= 3) {
+                setTimeout(() => playTone(baseFreq * 2, 'sawtooth', duration * 0.8), gap * 3);
+            }
+        }
+
+        function playGameOverSound() {
+            if (!audioCtx) return;
+            playTone(220, 'sawtooth', 0.3);
+            setTimeout(() => playTone(165, 'sawtooth', 0.4), 150);
+            setTimeout(() => playTone(110, 'sawtooth', 0.6), 350);
+        }
+
+        function playRespawnSound() {
+            if (!audioCtx) return;
+            playTone(523, 'sine', 0.1);
+            setTimeout(() => playTone(659, 'sine', 0.1), 80);
+            setTimeout(() => playTone(784, 'sine', 0.15), 160);
+        }
+
+        // 欢快激昂的背景音乐
+        let musicPlaying = false;
+        let musicTimer = null;
+        let musicBeat = 0;
+        const musicTempo = 0.18; // 约 166 BPM
+        const musicNotes = [
+            // 主旋律 (C 大调，欢快)
+            [523.25, 659.25, 783.99, 659.25, 880.00, 783.99, 659.25, 523.25],
+            [587.33, 698.46, 880.00, 698.46, 783.99, 659.25, 523.25, 392.00]
+        ];
+        const musicBass = [
+            [130.81, 130.81, 196.00, 196.00, 220.00, 220.00, 174.61, 174.61],
+            [130.81, 130.81, 196.00, 196.00, 220.00, 220.00, 174.61, 174.61]
+        ];
+
+        function playMusicNote(freq, time, duration, type = 'square') {
+            if (!audioCtx || !musicPlaying) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, time);
+            gain.gain.setValueAtTime(0.06, time);
+            gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(time);
+            osc.stop(time + duration);
+        }
+
+        function scheduleMusic() {
+            if (!audioCtx || !musicPlaying) return;
+            const lookahead = 0.5;
+            let nextTime = audioCtx.currentTime;
+            // 这里只是启动定时器，实际音符由 scheduler tick 安排
+        }
+
+        function musicTick() {
+            if (!audioCtx || !musicPlaying) return;
+            const now = audioCtx.currentTime;
+            const beatDuration = musicTempo;
+            // 使用静态变量保存下一次音符时间
+            if (!musicTick.nextNoteTime) musicTick.nextNoteTime = now;
+
+            while (musicTick.nextNoteTime < now + 0.3) {
+                const bar = Math.floor(musicBeat / 8) % 2;
+                const step = musicBeat % 8;
+                const melodyFreq = musicNotes[bar][step];
+                const bassFreq = musicBass[bar][step];
+
+                if (melodyFreq) {
+                    playMusicNote(melodyFreq, musicTick.nextNoteTime, beatDuration * 0.9, 'square');
+                }
+                if (bassFreq) {
+                    playMusicNote(bassFreq, musicTick.nextNoteTime, beatDuration * 0.95, 'sawtooth');
+                }
+
+                musicBeat++;
+                musicTick.nextNoteTime += beatDuration;
+            }
+        }
+
+        function startMusic() {
+            initAudio();
+            if (musicPlaying) return;
+            musicPlaying = true;
+            musicBeat = 0;
+            musicTick.nextNoteTime = null;
+            if (musicTimer) clearInterval(musicTimer);
+            musicTimer = setInterval(musicTick, 60);
+        }
+
+        function stopMusic() {
+            musicPlaying = false;
+            if (musicTimer) {
+                clearInterval(musicTimer);
+                musicTimer = null;
+            }
+        }
+
+        function loadLeaderboard() {
+            try {
+                return JSON.parse(localStorage.getItem('snakeLeaderboard')) || [];
+            } catch {
+                return [];
+            }
+        }
+
+        function saveLeaderboard(board) {
+            localStorage.setItem('snakeLeaderboard', JSON.stringify(board));
+        }
+
+        function addScoreToLeaderboard(newScore) {
+            const board = loadLeaderboard();
+            const entry = {
+                score: newScore,
+                date: new Date().toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+            };
+            board.push(entry);
+            board.sort((a, b) => b.score - a.score);
+            const trimmed = board.slice(0, 5);
+            saveLeaderboard(trimmed);
+            return trimmed;
+        }
+
+        function isNewRecord(newScore) {
+            const board = loadLeaderboard();
+            return board.length === 0 || newScore > board[0].score;
+        }
+
+        function getCurrentRank(newScore, board) {
+            return board.findIndex(entry => entry.score === newScore);
+        }
+
+        function renderLeaderboard(board, currentScore = null) {
+            leaderboardListEl.innerHTML = '';
+            board.forEach((entry, index) => {
+                const li = document.createElement('li');
+                li.className = `rank-${index + 1}`;
+                if (currentScore !== null && entry.score === currentScore) {
+                    li.classList.add('current');
+                }
+                li.innerHTML = `<span>#${index + 1}  ${entry.score} 分</span><span>${entry.date}</span>`;
+                leaderboardListEl.appendChild(li);
+            });
+        }
+
+        function initGame() {
+            snake = [
+                { x: 10 * gridSize, y: 10 * gridSize },
+                { x: 9 * gridSize, y: 10 * gridSize },
+                { x: 8 * gridSize, y: 10 * gridSize }
+            ];
+            dx = gridSize;
+            dy = 0;
+            nextDx = gridSize;
+            nextDy = 0;
+            score = 0;
+            scoreEl.textContent = score;
+            particles = [];
+            spawnFood();
+            gameRunning = true;
+            gamePaused = false;
+            gameOverEl.style.display = 'none';
+        }
+
+        function spawnFood() {
+            let valid = false;
+            while (!valid) {
+                food = {
+                    x: Math.floor(Math.random() * tileCount) * gridSize,
+                    y: Math.floor(Math.random() * tileCount) * gridSize
+                };
+                valid = !snake.some(segment => segment.x === food.x && segment.y === food.y);
+            }
+        }
+
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 12; i++) {
+                particles.push({
+                    x: x + gridSize / 2,
+                    y: y + gridSize / 2,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    life: 1.0,
+                    color: color,
+                    size: Math.random() * 4 + 2
+                });
+            }
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life -= 0.025;
+                p.size *= 0.96;
+                if (p.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function drawParticles() {
+            particles.forEach(p => {
+                ctx.save();
+                ctx.globalAlpha = p.life;
+                ctx.fillStyle = p.color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            });
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i <= tileCount; i++) {
+                ctx.beginPath();
+                ctx.moveTo(i * gridSize, 0);
+                ctx.lineTo(i * gridSize, canvas.height);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, i * gridSize);
+                ctx.lineTo(canvas.width, i * gridSize);
+                ctx.stroke();
+            }
+        }
+
+        function drawSnake() {
+            snake.forEach((segment, index) => {
+                const segmentHue = (hue + index * 12) % 360;
+                const color = `hsl(${segmentHue}, 100%, 60%)`;
+                const glowColor = `hsl(${segmentHue}, 100%, 40%)`;
+
+                ctx.save();
+                ctx.fillStyle = color;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = glowColor;
+
+                const size = gridSize - 2;
+                const radius = index === 0 ? 8 : 5;
+                const x = segment.x + 1;
+                const y = segment.y + 1;
+
+                ctx.beginPath();
+                ctx.roundRect(x, y, size, size, radius);
+                ctx.fill();
+
+                // 蛇眼
+                if (index === 0) {
+                    ctx.fillStyle = '#fff';
+                    ctx.shadowBlur = 5;
+                    ctx.shadowColor = '#fff';
+                    let eyeOffset = 5;
+                    let eye1X = x + size / 2;
+                    let eye1Y = y + size / 2;
+                    let eye2X = x + size / 2;
+                    let eye2Y = y + size / 2;
+
+                    if (dx > 0) { eye1X += eyeOffset; eye2X += eyeOffset; eye1Y -= 4; eye2Y += 4; }
+                    else if (dx < 0) { eye1X -= eyeOffset; eye2X -= eyeOffset; eye1Y -= 4; eye2Y += 4; }
+                    else if (dy > 0) { eye1Y += eyeOffset; eye2Y += eyeOffset; eye1X -= 4; eye2X += 4; }
+                    else { eye1Y -= eyeOffset; eye2Y -= eyeOffset; eye1X -= 4; eye2X += 4; }
+
+                    ctx.beginPath();
+                    ctx.arc(eye1X, eye1Y, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(eye2X, eye2Y, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.restore();
+            });
+        }
+
+        function drawFood() {
+            foodPulse += 0.08;
+            const pulse = Math.sin(foodPulse) * 3;
+            const foodHue = (hue + 180) % 360;
+            const color = `hsl(${foodHue}, 100%, 60%)`;
+
+            ctx.save();
+            ctx.fillStyle = color;
+            ctx.shadowBlur = 25 + pulse;
+            ctx.shadowColor = color;
+
+            const cx = food.x + gridSize / 2;
+            const cy = food.y + gridSize / 2;
+            const radius = (gridSize / 2 - 2) + pulse / 2;
+
+            ctx.beginPath();
+            ctx.arc(cx, cy, Math.max(2, radius), 0, Math.PI * 2);
+            ctx.fill();
+
+            // 食物光晕核心
+            ctx.fillStyle = '#fff';
+            ctx.shadowBlur = 10;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.restore();
+        }
+
+        function update() {
+            if (!gameRunning || gamePaused) return;
+
+            dx = nextDx;
+            dy = nextDy;
+
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+            // 撞墙或撞自己都会死
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height) {
+                gameOver();
+                return;
+            }
+            if (snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                gameOver();
+                return;
+            }
+
+            snake.unshift(head);
+
+            // 吃食物
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                scoreEl.textContent = score;
+                createParticles(food.x, food.y, `hsl(${(hue + 180) % 360}, 100%, 60%)`);
+                playEatSound();
+                spawnFood();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function gameOver() {
+            gameRunning = false;
+            stopMusic();
+            playGameOverSound();
+            finalScoreEl.textContent = score;
+            gameOverEl.style.display = 'block';
+
+            const board = addScoreToLeaderboard(score);
+            const isRecord = isNewRecord(score);
+
+            if (isRecord) {
+                recordNoticeEl.style.display = 'block';
+                localStorage.setItem('snakeHighScore', score);
+                highScoreEl.textContent = score;
+            } else {
+                recordNoticeEl.style.display = 'none';
+            }
+
+            renderLeaderboard(board, score);
+        }
+
+        function restartGame() {
+            playRespawnSound();
+            initGame();
+            startMusic();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+            drawFood();
+            drawSnake();
+            drawParticles();
+        }
+
+        function gameLoop() {
+            update();
+            updateParticles();
+            draw();
+            hue = (hue + 1) % 360;
+        }
+
+        document.addEventListener('keydown', (e) => {
+            initAudio();
+            startMusic();
+            const key = e.key.toLowerCase();
+            if (!gameRunning && key !== ' ' && key !== 'r') return;
+
+            switch(key) {
+                case 'arrowup':
+                case 'w':
+                    if (dy === 0) { nextDx = 0; nextDy = -gridSize; }
+                    break;
+                case 'arrowdown':
+                case 's':
+                    if (dy === 0) { nextDx = 0; nextDy = gridSize; }
+                    break;
+                case 'arrowleft':
+                case 'a':
+                    if (dx === 0) { nextDx = -gridSize; nextDy = 0; }
+                    break;
+                case 'arrowright':
+                case 'd':
+                    if (dx === 0) { nextDx = gridSize; nextDy = 0; }
+                    break;
+                case ' ':
+                    if (gameRunning) {
+                        gamePaused = !gamePaused;
+                        if (gamePaused) stopMusic(); else startMusic();
+                    }
+                    break;
+                case 'r':
+                    restartGame();
+                    break;
+            }
+        });
+
+        initGame();
+        setInterval(gameLoop, 100);
+    </script>
+</body>
+</html>
