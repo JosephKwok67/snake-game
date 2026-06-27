@@ -4,25 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>霓虹贪吃蛇</title>
-    <!-- Firebase SDK (compat 版，可直接配合普通 script 使用) -->
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <!-- Supabase SDK（国内访问更稳定，publishable key 设计为可公开，安全由 RLS 策略控制） -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Firebase 配置（web apiKey 设计为可公开，安全由 Firestore 规则控制）
-        const firebaseConfig = {
-            apiKey: "AIzaSyBzuxDyBBpfVGfDmZtFmuYRutY8bVyq94w",
-            authDomain: "snake-game-jk.firebaseapp.com",
-            projectId: "snake-game-jk",
-            storageBucket: "snake-game-jk.firebasestorage.app",
-            messagingSenderId: "908888924766",
-            appId: "1:908888924766:web:9229a670a4907459a10acf"
-        };
+        // Supabase 配置
+        const SUPABASE_URL = "https://rlowdgmgbcsgeclurcuz.supabase.co";
+        const SUPABASE_KEY = "sb_publishable_hfd1G9I8Btw9rziweGNpRQ_DLhSS5dx";
         let db = null;
         try {
-            firebase.initializeApp(firebaseConfig);
-            db = firebase.firestore();
+            db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
         } catch (e) {
-            console.warn('Firebase 初始化失败，全球排行榜不可用：', e);
+            console.warn('Supabase 初始化失败，全球排行榜不可用：', e);
         }
     </script>
     <style>
@@ -711,7 +703,7 @@
         let touchStartTime = 0;
         const SWIPE_THRESHOLD = 30;
 
-        /* ===================== 全球排行榜（Firebase Firestore） ===================== */
+        /* ===================== 全球排行榜（Supabase） ===================== */
         function getPlayerName() {
             let n = localStorage.getItem('snakePlayerName');
             if (!n) {
@@ -788,13 +780,13 @@
         async function submitGlobalScore(s, mode, reachedLevel) {
             if (!db || s <= 0) return;
             try {
-                await db.collection('scores').add({
+                const { error } = await db.from('scores').insert({
                     name: getPlayerName(),
                     mode: mode,
                     score: s,
-                    level: mode === 'level' ? reachedLevel : 0,
-                    ts: firebase.firestore.FieldValue.serverTimestamp()
+                    level: mode === 'level' ? reachedLevel : 0
                 });
+                if (error) console.warn('提交全球分数失败：', error.message);
             } catch (e) {
                 console.warn('提交全球分数失败：', e);
             }
@@ -804,19 +796,18 @@
             const ul = document.getElementById('globalLeaderboardEndlessList');
             if (!ul) return;
             if (!db) {
-                ul.innerHTML = '<li>全球排行榜不可用（无法连接 Firebase）</li>';
+                ul.innerHTML = '<li>全球排行榜不可用（无法连接数据库）</li>';
                 return;
             }
             ul.innerHTML = '<li>加载中...</li>';
             try {
-                const snap = await db.collection('scores')
-                    .where('mode', '==', 'endless')
-                    .orderBy('score', 'desc')
-                    .limit(10)
-                    .get();
-                const rows = [];
-                snap.forEach(doc => rows.push(doc.data()));
-                if (rows.length === 0) {
+                const { data: rows, error } = await db.from('scores')
+                    .select('name,score')
+                    .eq('mode', 'endless')
+                    .order('score', { ascending: false })
+                    .limit(10);
+                if (error) throw error;
+                if (!rows || rows.length === 0) {
                     ul.innerHTML = '<li>还没有记录，快来抢第一名！</li>';
                     return;
                 }
@@ -840,20 +831,19 @@
             const ul = document.getElementById('globalLeaderboardLevelList');
             if (!ul) return;
             if (!db) {
-                ul.innerHTML = '<li>全球排行榜不可用（无法连接 Firebase）</li>';
+                ul.innerHTML = '<li>全球排行榜不可用（无法连接数据库）</li>';
                 return;
             }
             ul.innerHTML = '<li>加载中...</li>';
             try {
-                const snap = await db.collection('scores')
-                    .where('mode', '==', 'level')
-                    .orderBy('level', 'desc')
-                    .orderBy('score', 'desc')
-                    .limit(10)
-                    .get();
-                const rows = [];
-                snap.forEach(doc => rows.push(doc.data()));
-                if (rows.length === 0) {
+                const { data: rows, error } = await db.from('scores')
+                    .select('name,score,level')
+                    .eq('mode', 'level')
+                    .order('level', { ascending: false })
+                    .order('score', { ascending: false })
+                    .limit(10);
+                if (error) throw error;
+                if (!rows || rows.length === 0) {
                     ul.innerHTML = '<li>还没有记录，快来抢第一名！</li>';
                     return;
                 }
