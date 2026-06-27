@@ -1728,6 +1728,15 @@
             return 4 + Math.floor(lvl * 1.5);
         }
 
+        function getObstacleMargin() {
+            // 无尽模式困难/中等避免在边缘生成障碍物，给边缘豆子留出通道
+            if (gameMode === 'endless' && endlessDifficulty) {
+                const d = DIFFICULTY[endlessDifficulty];
+                if (d.obstacleCount >= 8) return 2; // 中等/困难留 2 格边距
+            }
+            return 1; // 默认至少留 1 格边距
+        }
+
         function generateObstacles(count) {
             obstacles = [];
             const safeZone = [];
@@ -1744,12 +1753,16 @@
                 }
             }
 
+            const margin = getObstacleMargin();
+            const minTile = margin;
+            const maxTile = tileCount - margin;
+
             let attempts = 0;
-            while (obstacles.length < count && attempts < count * 50) {
+            while (obstacles.length < count && attempts < count * 100) {
                 attempts++;
                 const candidate = {
-                    x: Math.floor(Math.random() * tileCount) * gridSize,
-                    y: Math.floor(Math.random() * tileCount) * gridSize
+                    x: (minTile + Math.floor(Math.random() * (maxTile - minTile))) * gridSize,
+                    y: (minTile + Math.floor(Math.random() * (maxTile - minTile))) * gridSize
                 };
                 const inSafeZone = safeZone.some(p => p.x === candidate.x && p.y === candidate.y);
                 const duplicate = obstacles.some(o => o.x === candidate.x && o.y === candidate.y);
