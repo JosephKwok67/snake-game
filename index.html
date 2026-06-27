@@ -32,6 +32,24 @@
             font-size: 1.2rem;
             color: #00ffff;
             text-shadow: 0 0 10px #00ffff;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        #modeIndicator {
+            font-size: 0.75rem;
+            padding: 3px 10px;
+            border-radius: 12px;
+            background: rgba(255, 0, 255, 0.15);
+            color: #ff00ff;
+            border: 1px solid rgba(255, 0, 255, 0.4);
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+        }
+        #modeIndicator:hover {
+            background: rgba(255, 0, 255, 0.3);
+            box-shadow: 0 0 10px rgba(255, 0, 255, 0.4);
         }
         canvas {
             border: 3px solid #333;
@@ -137,9 +155,12 @@
 </head>
 <body>
     <h1>🐍 霓虹贪吃蛇</h1>
-    <div id="scoreBoard">得分: <span id="score">0</span> | 最高分: <span id="highScore">0</span></div>
+    <div id="scoreBoard">
+        得分: <span id="score">0</span> | 最高分: <span id="highScore">0</span>
+        <span id="modeIndicator" title="点击切换控制模式">检测中...</span>
+    </div>
     <canvas id="gameCanvas" width="600" height="600"></canvas>
-    <div id="info">方向键 / WASD 移动 | 空格键暂停 | R 键复活 | 撞墙会死</div>
+    <div id="info">键盘：方向键 / WASD 移动 | 手机：在画布上滑动控制 | 空格暂停 | R 复活</div>
 
     <div id="gameOver">
         <h2>游戏结束</h2>
@@ -161,6 +182,7 @@
         const gameOverEl = document.getElementById('gameOver');
         const leaderboardListEl = document.getElementById('leaderboardList');
         const recordNoticeEl = document.getElementById('recordNotice');
+        const modeIndicatorEl = document.getElementById('modeIndicator');
 
         const gridSize = 20;
         const tileCount = canvas.width / gridSize;
@@ -179,6 +201,59 @@
         let particles = [];
         let hue = 0;
         let foodPulse = 0;
+
+        // 控制模式：'auto' 由程序根据设备判断，'keyboard' 强制键盘，'touch' 强制触屏
+        let controlMode = 'auto';
+        let detectedTouch = false;
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchStartTime = 0;
+        const SWIPE_THRESHOLD = 30;
+
+        function isTouchDevice() {
+            return window.matchMedia('(pointer: coarse)').matches ||
+                   'ontouchstart' in window ||
+                   navigator.maxTouchPoints > 0;
+        }
+
+        function getEffectiveMode() {
+            if (controlMode !== 'auto') return controlMode;
+            return detectedTouch ? 'touch' : 'keyboard';
+        }
+
+        function updateModeIndicator() {
+            const mode = getEffectiveMode();
+            modeIndicatorEl.textContent = mode === 'touch' ? '触屏模式' : '键盘模式';
+            modeIndicatorEl.title = '点击切换：自动 / 键盘 / 触屏';
+        }
+
+        function cycleControlMode() {
+            if (controlMode === 'auto') controlMode = 'keyboard';
+            else if (controlMode === 'keyboard') controlMode = 'touch';
+            else controlMode = 'auto';
+            updateModeIndicator();
+        }
+
+        detectedTouch = isTouchDevice();
+        updateModeIndicator();
+        modeIndicatorEl.addEventListener('click', cycleControlMode);
+
+        function handleSwipe(deltaX, deltaY) {
+            if (!gameRunning || gamePaused) return;
+            if (Math.abs(deltaX) > Math.abs(deltaY)) {
+                // 水平滑动：当前必须没有垂直移动（防止掉头）
+                if (Math.abs(deltaX) >= SWIPE_THRESHOLD && dy === 0) {
+                    if (deltaX > 0) { nextDx = gridSize; nextDy = 0; }
+                    else { nextDx = -gridSize; nextDy = 0; }
+                }
+            } else {
+                // 垂直滑动：当前必须没有水平移动（防止掉头）
+                if (Math.abs(deltaY) >= SWIPE_THRESHOLD && dx === 0) {
+                    if (deltaY > 0) { nextDx = 0; nextDy = gridSize; }
+                    else { nextDx = 0; nextDy = -gridSize; }
+                }
+            }
+        }
 
         // Web Audio API 音效
         const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -641,6 +716,45 @@
                     break;
             }
         });
+
+        // 触屏滑动控制
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            initAudio();
+            startMusic();
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            touchStartTime = Date.now();
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            if (touchStartX === 0 && touchStartY === 0) return;
+            const touch = e.changedTouches[0];
+            const deltaX = touch.clientX - touchStartX;
+            const deltaY = touch.clientY - touchStartY;
+            const elapsed = Date.now() - touchStartTime;
+
+            // 快速点击（时间短、位移小）也可作为暂停/继续
+            if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10 && elapsed < 300) {
+                if (gameRunning) {
+                    gamePaused = !gamePaused;
+                    if (gamePaused) stopMusic(); else startMusic();
+                } else {
+                    restartGame();
+                }
+                return;
+            }
+
+            handleSwipe(deltaX, deltaY);
+            touchStartX = 0;
+            touchStartY = 0;
+        }, { passive: false });
 
         initGame();
         setInterval(gameLoop, 100);
