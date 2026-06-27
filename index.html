@@ -7,18 +7,32 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>霓虹贪吃蛇 - 无尽/闯关/排行榜</title>
-    <!-- Supabase SDK（国内访问更稳定，publishable key 设计为可公开，安全由 RLS 策略控制） -->
+    <!-- Supabase SDK：双 CDN 备选，防止某个 CDN 被墙 -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
         // Supabase 配置
         const SUPABASE_URL = "https://rlowdgmgbcsgeclurcuz.supabase.co";
         const SUPABASE_KEY = "sb_publishable_hfd1G9I8Btw9rziweGNpRQ_DLhSS5dx";
         let db = null;
-        try {
-            db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        } catch (e) {
-            console.warn('Supabase 初始化失败，全球排行榜不可用：', e);
+        function initSupabase() {
+            if (db) return true;
+            if (typeof window !== 'undefined' && window.supabase && window.supabase.createClient) {
+                try {
+                    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                    console.log('Supabase 初始化成功');
+                    return true;
+                } catch (e) {
+                    console.warn('Supabase 初始化失败：', e);
+                }
+            }
+            return false;
         }
+        // 立即尝试一次，失败则在页面加载后重试
+        initSupabase();
+        window.addEventListener('DOMContentLoaded', () => {
+            if (!db) initSupabase();
+        });
     </script>
     <style>
         * {
@@ -1682,14 +1696,24 @@
 
         function updateModeIndicator() {
             const mode = getEffectiveMode();
-            modeIndicatorEl.textContent = mode === 'touch' ? '触屏模式' : '键盘模式';
-            modeIndicatorEl.title = '点击切换：自动 / 键盘 / 触屏';
+            if (detectedTouch) {
+                modeIndicatorEl.textContent = mode === 'touch' ? '触屏模式' : '自动模式';
+                modeIndicatorEl.title = '点击切换：自动 / 触屏';
+            } else {
+                modeIndicatorEl.textContent = mode === 'touch' ? '触屏模式' : '键盘模式';
+                modeIndicatorEl.title = '点击切换：自动 / 键盘 / 触屏';
+            }
         }
 
         function cycleControlMode() {
-            if (controlMode === 'auto') controlMode = 'keyboard';
-            else if (controlMode === 'keyboard') controlMode = 'touch';
-            else controlMode = 'auto';
+            if (detectedTouch) {
+                // 手机上只有「自动」和「触屏」两种有意义状态，避免切到键盘模式
+                controlMode = controlMode === 'auto' ? 'touch' : 'auto';
+            } else {
+                if (controlMode === 'auto') controlMode = 'keyboard';
+                else if (controlMode === 'keyboard') controlMode = 'touch';
+                else controlMode = 'auto';
+            }
             updateModeIndicator();
         }
 
