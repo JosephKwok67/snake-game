@@ -56,6 +56,11 @@
             border-radius: 8px;
             box-shadow: 0 0 30px rgba(0, 255, 255, 0.3), inset 0 0 30px rgba(255, 0, 255, 0.1);
             background: radial-gradient(circle at center, #1a1a2e 0%, #0a0a12 100%);
+            max-width: 95vw;
+            max-height: 65vh;
+            width: auto;
+            height: auto;
+            touch-action: none;
         }
         #info {
             margin-top: 15px;
@@ -241,14 +246,14 @@
         function handleSwipe(deltaX, deltaY) {
             if (!gameRunning || gamePaused) return;
             if (Math.abs(deltaX) > Math.abs(deltaY)) {
-                // 水平滑动：当前必须没有垂直移动（防止掉头）
-                if (Math.abs(deltaX) >= SWIPE_THRESHOLD && dy === 0) {
+                // 水平滑动：当前必须没有水平移动（防止掉头）
+                if (Math.abs(deltaX) >= SWIPE_THRESHOLD && dx === 0) {
                     if (deltaX > 0) { nextDx = gridSize; nextDy = 0; }
                     else { nextDx = -gridSize; nextDy = 0; }
                 }
             } else {
-                // 垂直滑动：当前必须没有水平移动（防止掉头）
-                if (Math.abs(deltaY) >= SWIPE_THRESHOLD && dx === 0) {
+                // 垂直滑动：当前必须没有垂直移动（防止掉头）
+                if (Math.abs(deltaY) >= SWIPE_THRESHOLD && dy === 0) {
                     if (deltaY > 0) { nextDx = 0; nextDy = gridSize; }
                     else { nextDx = 0; nextDy = -gridSize; }
                 }
