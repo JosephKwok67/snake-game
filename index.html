@@ -4,6 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>霓虹贪吃蛇</title>
+    <!-- Firebase SDK (compat 版，可直接配合普通 script 使用) -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+    <script>
+        // Firebase 配置（web apiKey 设计为可公开，安全由 Firestore 规则控制）
+        const firebaseConfig = {
+            apiKey: "AIzaSyBzuxDyBBpfVGfDmZtFmuYRutY8bVyq94w",
+            authDomain: "snake-game-jk.firebaseapp.com",
+            projectId: "snake-game-jk",
+            storageBucket: "snake-game-jk.firebasestorage.app",
+            messagingSenderId: "908888924766",
+            appId: "1:908888924766:web:9229a670a4907459a10acf"
+        };
+        let db = null;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            db = firebase.firestore();
+        } catch (e) {
+            console.warn('Firebase 初始化失败，全球排行榜不可用：', e);
+        }
+    </script>
     <style>
         * {
             margin: 0;
@@ -26,6 +47,22 @@
             font-size: 2rem;
             text-shadow: 0 0 20px #ff00ff, 0 0 40px #00ffff;
             letter-spacing: 4px;
+        }
+        #playerBar {
+            margin-bottom: 8px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
+        #playerBar #playerName {
+            color: #00ffff;
+            text-shadow: 0 0 8px #00ffff;
+        }
+        #playerBar button {
+            padding: 2px 12px;
+            font-size: 0.7rem;
+            border-radius: 14px;
+            margin-left: 6px;
+            vertical-align: middle;
         }
         #scoreBoard {
             margin-bottom: 10px;
@@ -74,12 +111,14 @@
             left: 50%;
             transform: translate(-50%, -50%);
             background: rgba(0, 0, 0, 0.85);
-            padding: 30px 50px;
+            padding: 28px 45px;
             border-radius: 15px;
             border: 2px solid #ff00ff;
             box-shadow: 0 0 40px rgba(255, 0, 255, 0.5);
             text-align: center;
             display: none;
+            max-height: 92vh;
+            overflow-y: auto;
         }
         #gameOver h2 {
             color: #ff00ff;
@@ -106,10 +145,10 @@
             transform: scale(1.05);
             box-shadow: 0 0 25px rgba(255, 0, 255, 0.6);
         }
-        #leaderboard {
+        #leaderboard, #globalLeaderboard {
             margin: 15px 0;
             text-align: left;
-            min-width: 220px;
+            min-width: 240px;
         }
         #leaderboard h3 {
             text-align: center;
@@ -118,12 +157,19 @@
             margin-bottom: 10px;
             font-size: 1rem;
         }
-        #leaderboard ul {
+        #globalLeaderboard h3 {
+            text-align: center;
+            color: #ff00ff;
+            text-shadow: 0 0 10px #ff00ff;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+        #leaderboard ul, #globalLeaderboard ul {
             list-style: none;
             padding: 0;
             margin: 0;
         }
-        #leaderboard li {
+        #leaderboard li, #globalLeaderboard li {
             padding: 5px 10px;
             border-radius: 5px;
             margin-bottom: 4px;
@@ -131,22 +177,26 @@
             display: flex;
             justify-content: space-between;
         }
-        #leaderboard li.rank-1 {
+        #leaderboard li.rank-1, #globalLeaderboard li.rank-1 {
             background: rgba(255, 215, 0, 0.15);
             color: #ffd700;
             text-shadow: 0 0 8px #ffd700;
         }
-        #leaderboard li.rank-2 {
+        #leaderboard li.rank-2, #globalLeaderboard li.rank-2 {
             background: rgba(192, 192, 192, 0.15);
             color: #c0c0c0;
         }
-        #leaderboard li.rank-3 {
+        #leaderboard li.rank-3, #globalLeaderboard li.rank-3 {
             background: rgba(205, 127, 50, 0.15);
             color: #cd7f32;
         }
         #leaderboard li.current {
             outline: 1px solid #ff00ff;
             box-shadow: 0 0 10px rgba(255, 0, 255, 0.4);
+        }
+        #globalLeaderboard li.current {
+            outline: 1px solid #00ffff;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.4);
         }
         #recordNotice {
             color: #ffd700;
@@ -261,6 +311,7 @@
 </head>
 <body>
     <h1>🐍 霓虹贪吃蛇</h1>
+    <div id="playerBar">玩家: <span id="playerName">—</span><button onclick="changePlayerName()">改名</button></div>
     <div id="scoreBoard">
         <span id="scoreLabel">得分:</span> <span id="score">0</span> | 最高分: <span id="highScore">0</span>
         <span id="modeIndicator" title="点击切换控制模式">检测中...</span>
@@ -291,8 +342,12 @@
         <h2>游戏结束</h2>
         <div id="recordNotice">🏆 新纪录！</div>
         <p>最终得分: <span id="finalScore">0</span></p>
+        <div id="globalLeaderboard">
+            <h3>🌍 全球排行榜 TOP 10</h3>
+            <ul id="globalLeaderboardList"><li>加载中...</li></ul>
+        </div>
         <div id="leaderboard">
-            <h3>🏅 排行榜 TOP 5</h3>
+            <h3>🏅 本机排行榜 TOP 5</h3>
             <ul id="leaderboardList"></ul>
         </div>
         <button onclick="restartGame()">重新开始</button>
@@ -348,6 +403,77 @@
         let touchStartY = 0;
         let touchStartTime = 0;
         const SWIPE_THRESHOLD = 30;
+
+        /* ===================== 全球排行榜（Firebase Firestore） ===================== */
+        function getPlayerName() {
+            let n = localStorage.getItem('snakePlayerName');
+            if (!n) {
+                n = '玩家' + Math.floor(1000 + Math.random() * 9000);
+                localStorage.setItem('snakePlayerName', n);
+            }
+            return n;
+        }
+
+        function updatePlayerBar() {
+            const el = document.getElementById('playerName');
+            if (el) el.textContent = getPlayerName();
+        }
+
+        function changePlayerName() {
+            const cur = getPlayerName();
+            const n = prompt('输入你的昵称（会显示在全球排行榜）：', cur);
+            if (n && n.trim()) {
+                localStorage.setItem('snakePlayerName', n.trim().slice(0, 16));
+                updatePlayerBar();
+                renderGlobalLeaderboard();
+            }
+        }
+
+        async function submitGlobalScore(s) {
+            if (!db || s <= 0) return;
+            try {
+                await db.collection('scores').add({
+                    name: getPlayerName(),
+                    score: s,
+                    ts: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (e) {
+                console.warn('提交全球分数失败：', e);
+            }
+        }
+
+        async function renderGlobalLeaderboard() {
+            const ul = document.getElementById('globalLeaderboardList');
+            if (!ul) return;
+            if (!db) {
+                ul.innerHTML = '<li>全球排行榜不可用（无法连接 Firebase）</li>';
+                return;
+            }
+            ul.innerHTML = '<li>加载中...</li>';
+            try {
+                const snap = await db.collection('scores').orderBy('score', 'desc').limit(10).get();
+                const rows = [];
+                snap.forEach(doc => rows.push(doc.data()));
+                if (rows.length === 0) {
+                    ul.innerHTML = '<li>还没有记录，快来抢第一名！</li>';
+                    return;
+                }
+                ul.innerHTML = '';
+                const me = getPlayerName();
+                rows.forEach((r, i) => {
+                    const li = document.createElement('li');
+                    li.className = 'rank-' + (i + 1);
+                    if (r.name === me) li.classList.add('current');
+                    const safeName = (r.name || '匿名').toString().replace(/</g, '&lt;');
+                    li.innerHTML = `<span>#${i + 1}  ${safeName}</span><span>${r.score} 分</span>`;
+                    ul.appendChild(li);
+                });
+            } catch (e) {
+                ul.innerHTML = '<li>全球排行榜加载失败</li>';
+                console.warn(e);
+            }
+        }
+        /* ========================================================================= */
 
         function isTouchDevice() {
             return window.matchMedia('(pointer: coarse)').matches ||
@@ -1046,6 +1172,9 @@
             }
 
             renderLeaderboard(board, score);
+
+            // 提交并刷新全球排行榜
+            submitGlobalScore(score).finally(() => renderGlobalLeaderboard());
         }
 
         function backToMenu() {
@@ -1155,6 +1284,7 @@
             touchStartY = 0;
         }, { passive: false });
 
+        updatePlayerBar();
         canvas.style.display = 'none';
         gameLoopId = setInterval(gameLoop, 100);
     </script>
