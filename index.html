@@ -33,6 +33,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             color: #fff;
             overflow: hidden;
+            touch-action: none;
         }
         h1 {
             margin-bottom: 10px;
@@ -551,6 +552,68 @@
             color: #888;
             margin-left: 4px;
         }
+        #mobileControls {
+            display: none;
+            margin-top: 12px;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            user-select: none;
+        }
+        #mobileControls.active {
+            display: flex;
+        }
+        .dpad-row {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+        }
+        .dpad-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            font-size: 1.4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, rgba(255,107,53,0.2), rgba(157,78,237,0.15));
+            border: 2px solid rgba(255, 107, 53, 0.4);
+            color: #ff9e00;
+            cursor: pointer;
+            transition: all 0.1s;
+            padding: 0;
+        }
+        .dpad-btn:active {
+            transform: scale(0.92);
+            background: linear-gradient(135deg, rgba(255,107,53,0.4), rgba(157,78,237,0.3));
+            box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
+        }
+        #controlModeBar {
+            display: none;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: #aaa;
+            align-items: center;
+            gap: 8px;
+        }
+        #controlModeBar.active {
+            display: flex;
+        }
+        .control-option {
+            padding: 5px 14px;
+            font-size: 0.8rem;
+            border-radius: 16px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            color: #ccc;
+            cursor: pointer;
+        }
+        .control-option.active {
+            background: rgba(255, 107, 53, 0.2);
+            border-color: #ff6b35;
+            color: #ff9e00;
+            box-shadow: 0 0 10px rgba(255, 107, 53, 0.25);
+        }
     </style>
 </head>
 <body>
@@ -648,7 +711,25 @@
     </div>
 
     <canvas id="gameCanvas" width="600" height="600"></canvas>
-    <div id="info">键盘：方向键 / WASD 移动 | 手机：在画布上滑动控制 | 空格暂停 | R 复活</div>
+
+    <div id="mobileControls">
+        <div class="dpad-row">
+            <button class="dpad-btn" data-dir="up" aria-label="上">▲</button>
+        </div>
+        <div class="dpad-row">
+            <button class="dpad-btn" data-dir="left" aria-label="左">◀</button>
+            <button class="dpad-btn" data-dir="down" aria-label="下">▼</button>
+            <button class="dpad-btn" data-dir="right" aria-label="右">▶</button>
+        </div>
+    </div>
+
+    <div id="controlModeBar">
+        控制方式:
+        <button class="control-option" data-mode="swipe" onclick="setMobileControlMode('swipe')">滑动</button>
+        <button class="control-option" data-mode="arrows" onclick="setMobileControlMode('arrows')">箭头</button>
+    </div>
+
+    <div id="info">键盘：方向键 / WASD 移动 | 手机：滑动或箭头控制 | 空格暂停 | R 复活</div>
 
     <div id="gameOver">
         <h2>游戏结束</h2>
@@ -680,6 +761,8 @@
         const menuPlayerNameEl = document.getElementById('menuPlayerName');
         const gameTitleEl = document.getElementById('gameTitle');
         const playerBarEl = document.getElementById('playerBar');
+        const mobileControlsEl = document.getElementById('mobileControls');
+        const controlModeBarEl = document.getElementById('controlModeBar');
 
         const gridSize = 20;
         const tileCount = canvas.width / gridSize;
@@ -972,8 +1055,62 @@
             updateModeIndicator();
         }
 
+        // 手机端控制方式：滑动 或 箭头按钮
+        function getMobileControlMode() {
+            return localStorage.getItem('snakeMobileControl') || 'swipe';
+        }
+
+        function setMobileControlMode(mode) {
+            localStorage.setItem('snakeMobileControl', mode);
+            updateMobileControlUI();
+        }
+
+        function updateMobileControlUI() {
+            const mode = getMobileControlMode();
+            document.querySelectorAll('.control-option').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            if (mobileControlsEl) {
+                mobileControlsEl.classList.toggle('active', detectedTouch && mode === 'arrows');
+            }
+            if (controlModeBarEl) {
+                controlModeBarEl.classList.toggle('active', detectedTouch);
+            }
+        }
+
+        function setDirection(dir) {
+            if (!gameRunning || gamePaused) return;
+            switch(dir) {
+                case 'up':
+                    if (dy === 0) { nextDx = 0; nextDy = -gridSize; }
+                    break;
+                case 'down':
+                    if (dy === 0) { nextDx = 0; nextDy = gridSize; }
+                    break;
+                case 'left':
+                    if (dx === 0) { nextDx = -gridSize; nextDy = 0; }
+                    break;
+                case 'right':
+                    if (dx === 0) { nextDx = gridSize; nextDy = 0; }
+                    break;
+            }
+        }
+
+        // 绑定箭头按钮
+        document.querySelectorAll('.dpad-btn').forEach(btn => {
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                setDirection(btn.dataset.dir);
+            }, { passive: false });
+            btn.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                setDirection(btn.dataset.dir);
+            });
+        });
+
         detectedTouch = isTouchDevice();
         updateModeIndicator();
+        updateMobileControlUI();
         modeIndicatorEl.addEventListener('click', cycleControlMode);
 
         function handleSwipe(deltaX, deltaY) {
@@ -1265,6 +1402,7 @@
             canvas.style.display = 'block';
             playerBarEl.style.display = 'block';
             gameTitleEl.style.opacity = '0';
+            updateMobileControlUI();
             initGame();
             startMusic();
         }
@@ -1711,6 +1849,7 @@
                 finalScoreEl.textContent = score;
             }
             gameOverEl.style.display = 'block';
+            if (mobileControlsEl) mobileControlsEl.classList.remove('active');
 
             const mode = gameMode || 'endless';
             addScoreToLeaderboard(mode, score, level);
@@ -1734,6 +1873,8 @@
             startMenuEl.style.display = 'block';
             canvas.style.display = 'none';
             playerBarEl.style.display = 'none';
+            if (mobileControlsEl) mobileControlsEl.classList.remove('active');
+            if (controlModeBarEl) controlModeBarEl.classList.remove('active');
             gameTitleEl.style.opacity = '1';
             gameMode = null;
             stopMusic();
@@ -1744,6 +1885,7 @@
         function restartGame() {
             playRespawnSound();
             initGame();
+            updateMobileControlUI();
             startMusic();
         }
 
@@ -1800,6 +1942,7 @@
 
         // 触屏滑动控制
         canvas.addEventListener('touchstart', (e) => {
+            if (getMobileControlMode() !== 'swipe') return;
             e.preventDefault();
             initAudio();
             startMusic();
@@ -1810,10 +1953,12 @@
         }, { passive: false });
 
         canvas.addEventListener('touchmove', (e) => {
+            if (getMobileControlMode() !== 'swipe') return;
             e.preventDefault();
         }, { passive: false });
 
         canvas.addEventListener('touchend', (e) => {
+            if (getMobileControlMode() !== 'swipe') return;
             e.preventDefault();
             if (touchStartX === 0 && touchStartY === 0) return;
             const touch = e.changedTouches[0];
@@ -1829,10 +1974,19 @@
                 } else {
                     restartGame();
                 }
+                touchStartX = 0;
+                touchStartY = 0;
                 return;
             }
 
-            handleSwipe(deltaX, deltaY);
+            // 速度补偿：滑得越快，需要的距离越短
+            const velocityX = Math.abs(deltaX) / Math.max(elapsed, 1);
+            const velocityY = Math.abs(deltaY) / Math.max(elapsed, 1);
+            const dynamicThreshold = Math.max(20, 50 - Math.max(velocityX, velocityY) * 80);
+
+            if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) >= dynamicThreshold) {
+                handleSwipe(deltaX, deltaY);
+            }
             touchStartX = 0;
             touchStartY = 0;
         }, { passive: false });
