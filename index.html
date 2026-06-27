@@ -52,6 +52,7 @@
             margin-bottom: 8px;
             font-size: 0.85rem;
             color: #aaa;
+            display: none;
         }
         #playerBar #playerName {
             color: #00ffff;
@@ -220,50 +221,6 @@
             margin-bottom: 10px;
             display: none;
         }
-        #startMenu {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.9);
-            padding: 40px 50px;
-            border-radius: 20px;
-            border: 2px solid #00ffff;
-            box-shadow: 0 0 50px rgba(0, 255, 255, 0.4);
-            text-align: center;
-            z-index: 10;
-        }
-        #startMenu h2 {
-            color: #00ffff;
-            margin-bottom: 25px;
-            text-shadow: 0 0 15px #00ffff;
-        }
-        .mode-btn {
-            display: block;
-            width: 260px;
-            margin: 15px auto;
-            padding: 18px 20px;
-            font-size: 1.2rem;
-            background: linear-gradient(135deg, rgba(255,0,255,0.2), rgba(0,255,255,0.2));
-            border: 2px solid #333;
-            border-radius: 15px;
-            color: #fff;
-            cursor: pointer;
-            transition: all 0.25s;
-            text-align: left;
-        }
-        .mode-btn:hover {
-            border-color: #ff00ff;
-            box-shadow: 0 0 25px rgba(255, 0, 255, 0.5);
-            transform: translateY(-2px);
-        }
-        .mode-btn small {
-            display: block;
-            margin-top: 6px;
-            font-size: 0.8rem;
-            color: #aaa;
-            font-weight: normal;
-        }
         #levelSelect {
             position: absolute;
             top: 50%;
@@ -321,10 +278,279 @@
             color: #ffd700;
             box-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
         }
+        #gameTitle {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.6rem;
+            z-index: 5;
+            text-shadow: 0 0 20px #ff00ff, 0 0 40px #00ffff;
+            transition: opacity 0.3s;
+        }
+        #startMenu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(20, 0, 40, 0.95), rgba(0, 20, 40, 0.95));
+            padding: 35px 40px;
+            border-radius: 24px;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 60px rgba(0, 255, 255, 0.25), inset 0 0 30px rgba(255, 0, 255, 0.08);
+            text-align: center;
+            z-index: 10;
+            min-width: 340px;
+            max-width: 90vw;
+        }
+        .menu-title {
+            margin-bottom: 25px;
+        }
+        .menu-icon {
+            font-size: 3.5rem;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 0 15px rgba(255, 0, 255, 0.6));
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+        }
+        .menu-name {
+            font-size: 2rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, #ff00ff, #00ffff, #ff00ff);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shine 3s linear infinite;
+            letter-spacing: 3px;
+        }
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+        .menu-subtitle {
+            font-size: 0.9rem;
+            color: #888;
+            letter-spacing: 6px;
+            margin-top: 4px;
+        }
+        .menu-player {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 12px 18px;
+            margin-bottom: 25px;
+        }
+        .player-avatar {
+            font-size: 1.8rem;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #ff00ff33, #00ffff33);
+            border-radius: 50%;
+        }
+        .player-info {
+            text-align: left;
+            flex: 1;
+        }
+        .player-label {
+            font-size: 0.7rem;
+            color: #888;
+        }
+        .player-name {
+            font-size: 1.1rem;
+            color: #00ffff;
+            text-shadow: 0 0 8px #00ffff;
+            font-weight: bold;
+        }
+        .icon-btn {
+            padding: 6px 10px;
+            font-size: 1rem;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .icon-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.1);
+        }
+        .mode-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .mode-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 22px 15px;
+            border-radius: 18px;
+            border: 2px solid transparent;
+            background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+        .mode-card:hover {
+            transform: translateY(-4px);
+        }
+        .mode-card.endless {
+            border-color: rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.1);
+        }
+        .mode-card.endless:hover {
+            border-color: #00ffff;
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+            background: linear-gradient(135deg, rgba(0,255,255,0.15), rgba(0,255,255,0.05));
+        }
+        .mode-card.level {
+            border-color: rgba(255, 0, 255, 0.3);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.1);
+        }
+        .mode-card.level:hover {
+            border-color: #ff00ff;
+            box-shadow: 0 0 25px rgba(255, 0, 255, 0.4);
+            background: linear-gradient(135deg, rgba(255,0,255,0.15), rgba(255,0,255,0.05));
+        }
+        .mode-card .mode-icon {
+            font-size: 2.2rem;
+            margin-bottom: 8px;
+        }
+        .mode-card .mode-name {
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+        .mode-card .mode-desc {
+            font-size: 0.75rem;
+            color: #aaa;
+        }
+        .menu-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .action-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 25px;
+            border: 2px solid rgba(255, 215, 0, 0.4);
+            background: linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,215,0,0.04));
+            color: #ffd700;
+            cursor: pointer;
+            transition: all 0.25s;
+        }
+        .action-btn:hover {
+            border-color: #ffd700;
+            box-shadow: 0 0 25px rgba(255, 215, 0, 0.4);
+            transform: translateY(-2px);
+        }
+        #nameSetup, #rankingScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(20, 0, 40, 0.95), rgba(0, 20, 40, 0.95));
+            padding: 35px 40px;
+            border-radius: 24px;
+            border: 2px solid rgba(255, 0, 255, 0.3);
+            box-shadow: 0 0 60px rgba(255, 0, 255, 0.25), inset 0 0 30px rgba(0, 255, 255, 0.08);
+            text-align: center;
+            z-index: 12;
+            display: none;
+            min-width: 320px;
+            max-width: 90vw;
+            max-height: 92vh;
+            overflow-y: auto;
+        }
+        #nameSetup h2, #rankingScreen h2 {
+            color: #ff00ff;
+            text-shadow: 0 0 15px #ff00ff;
+            margin-bottom: 10px;
+        }
+        .setup-tip {
+            color: #888;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+        }
+        #nameInput {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 1.1rem;
+            border-radius: 12px;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.4);
+            color: #fff;
+            text-align: center;
+            outline: none;
+            margin-bottom: 20px;
+        }
+        #nameInput:focus {
+            border-color: #00ffff;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+        }
+        .setup-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .ranking-header {
+            margin-bottom: 15px;
+        }
+        .ranking-header p {
+            color: #888;
+            font-size: 0.85rem;
+        }
+        .ranking-tabs {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        .ranking-tab {
+            padding: 8px 20px;
+            border-radius: 20px;
+            border: 2px solid rgba(255,255,255,0.1);
+            background: rgba(255,255,255,0.05);
+            color: #aaa;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .ranking-tab.active {
+            border-color: #00ffff;
+            color: #00ffff;
+            background: rgba(0,255,255,0.1);
+            box-shadow: 0 0 15px rgba(0,255,255,0.2);
+        }
+        .ranking-tab:hover {
+            border-color: #ff00ff;
+            color: #ff00ff;
+        }
+        .ranking-panel {
+            display: none;
+        }
+        .ranking-panel.active {
+            display: block;
+        }
     </style>
 </head>
 <body>
-    <h1>🐍 霓虹贪吃蛇</h1>
+    <h1 id="gameTitle">🐍 霓虹贪吃蛇</h1>
     <div id="playerBar">玩家: <span id="playerName">—</span><button onclick="changePlayerName()">改名</button></div>
     <div id="scoreBoard">
         <span id="scoreLabel">得分:</span> <span id="score">0</span> | 最高分: <span id="highScore">0</span>
@@ -332,15 +558,81 @@
     </div>
 
     <div id="startMenu">
-        <h2>选择游戏模式</h2>
-        <button class="mode-btn" onclick="selectMode('endless')">
-            ♾️ 无尽模式
-            <small>一条命，挑战最高分</small>
-        </button>
-        <button class="mode-btn" onclick="showLevelSelect()">
-            🏰 闯关模式
-            <small>选择关卡，障碍逐渐变多</small>
-        </button>
+        <div class="menu-title">
+            <div class="menu-icon">🐍</div>
+            <div class="menu-name">霓虹贪吃蛇</div>
+            <div class="menu-subtitle">Neon Snake</div>
+        </div>
+
+        <div class="menu-player">
+            <div class="player-avatar" id="menuAvatar">🎮</div>
+            <div class="player-info">
+                <div class="player-label">当前玩家</div>
+                <div class="player-name" id="menuPlayerName">玩家</div>
+            </div>
+            <button class="icon-btn" onclick="showNameSetup()" title="修改昵称">✏️</button>
+        </div>
+
+        <div class="mode-grid">
+            <button class="mode-card endless" onclick="selectMode('endless')">
+                <div class="mode-icon">♾️</div>
+                <div class="mode-name">无尽模式</div>
+                <div class="mode-desc">一条命挑战最高分</div>
+            </button>
+            <button class="mode-card level" onclick="showLevelSelect()">
+                <div class="mode-icon">🏰</div>
+                <div class="mode-name">闯关模式</div>
+                <div class="mode-desc">层层闯关障碍递增</div>
+            </button>
+        </div>
+
+        <div class="menu-actions">
+            <button class="action-btn ranking" onclick="showRankingScreen()">
+                <span>🏆</span> 查看排行榜
+            </button>
+        </div>
+    </div>
+
+    <div id="nameSetup">
+        <h2>设置昵称</h2>
+        <p class="setup-tip">你的昵称会显示在全球排行榜上</p>
+        <input type="text" id="nameInput" maxlength="16" placeholder="输入昵称">
+        <div class="setup-actions">
+            <button onclick="saveNameFromSetup()">保存</button>
+            <button onclick="backToMenu()" style="background: linear-gradient(135deg, #444, #666);">取消</button>
+        </div>
+    </div>
+
+    <div id="rankingScreen">
+        <div class="ranking-header">
+            <h2>🏆 全球排行榜</h2>
+            <p>看看你和朋友的排名</p>
+        </div>
+        <div class="ranking-tabs">
+            <button class="ranking-tab active" onclick="switchRankingTab('endless')">无尽模式</button>
+            <button class="ranking-tab" onclick="switchRankingTab('level')">闯关模式</button>
+        </div>
+        <div id="rankingEndless" class="ranking-panel active">
+            <div id="globalLeaderboardEndless">
+                <h3>🌍 无尽模式全球榜 TOP 10</h3>
+                <ul id="globalLeaderboardEndlessList"><li>加载中...</li></ul>
+            </div>
+            <div id="leaderboardEndless">
+                <h3>🏅 本机无尽榜 TOP 5</h3>
+                <ul id="leaderboardEndlessList"></ul>
+            </div>
+        </div>
+        <div id="rankingLevel" class="ranking-panel">
+            <div id="globalLeaderboardLevel">
+                <h3>🌍 闯关模式全球榜 TOP 10</h3>
+                <ul id="globalLeaderboardLevelList"><li>加载中...</li></ul>
+            </div>
+            <div id="leaderboardLevel">
+                <h3>🏅 本机闯关榜 TOP 5</h3>
+                <ul id="leaderboardLevelList"></ul>
+            </div>
+        </div>
+        <button onclick="backToMenu()" style="margin-top: 20px; background: linear-gradient(135deg, #444, #666);">返回主菜单</button>
     </div>
 
     <div id="levelSelect">
@@ -356,23 +648,8 @@
         <h2>游戏结束</h2>
         <div id="recordNotice">🏆 新纪录！</div>
         <p>最终得分: <span id="finalScore">0</span></p>
-        <div id="globalLeaderboardEndless">
-            <h3>🌍 无尽模式全球榜 TOP 10</h3>
-            <ul id="globalLeaderboardEndlessList"><li>加载中...</li></ul>
-        </div>
-        <div id="globalLeaderboardLevel">
-            <h3>🌍 闯关模式全球榜 TOP 10</h3>
-            <ul id="globalLeaderboardLevelList"><li>加载中...</li></ul>
-        </div>
-        <div id="leaderboardEndless">
-            <h3>🏅 本机无尽榜 TOP 5</h3>
-            <ul id="leaderboardEndlessList"></ul>
-        </div>
-        <div id="leaderboardLevel">
-            <h3>🏅 本机闯关榜 TOP 5</h3>
-            <ul id="leaderboardLevelList"></ul>
-        </div>
         <button onclick="restartGame()">重新开始</button>
+        <button onclick="showRankingScreenFromGameOver()" style="margin-top: 10px; background: linear-gradient(135deg, rgba(255,215,0,0.2), rgba(255,215,0,0.1)); border: 2px solid rgba(255,215,0,0.4); color: #ffd700;">🏆 查看排行榜</button>
         <button onclick="backToMenu()" style="margin-top: 10px; background: linear-gradient(135deg, #444, #666);">返回主菜单</button>
     </div>
 
@@ -391,6 +668,12 @@
         const startMenuEl = document.getElementById('startMenu');
         const levelSelectEl = document.getElementById('levelSelect');
         const levelGridEl = document.getElementById('levelGrid');
+        const nameSetupEl = document.getElementById('nameSetup');
+        const rankingScreenEl = document.getElementById('rankingScreen');
+        const nameInputEl = document.getElementById('nameInput');
+        const menuPlayerNameEl = document.getElementById('menuPlayerName');
+        const gameTitleEl = document.getElementById('gameTitle');
+        const playerBarEl = document.getElementById('playerBar');
 
         const gridSize = 20;
         const tileCount = canvas.width / gridSize;
@@ -441,15 +724,64 @@
         function updatePlayerBar() {
             const el = document.getElementById('playerName');
             if (el) el.textContent = getPlayerName();
+            if (menuPlayerNameEl) menuPlayerNameEl.textContent = getPlayerName();
         }
 
         function changePlayerName() {
-            const cur = getPlayerName();
-            const n = prompt('输入你的昵称（会显示在全球排行榜）：', cur);
+            showNameSetup();
+        }
+
+        function showNameSetup() {
+            startMenuEl.style.display = 'none';
+            rankingScreenEl.style.display = 'none';
+            levelSelectEl.style.display = 'none';
+            nameSetupEl.style.display = 'block';
+            nameInputEl.value = getPlayerName();
+            nameInputEl.focus();
+            nameInputEl.select();
+        }
+
+        function saveNameFromSetup() {
+            const n = nameInputEl.value;
             if (n && n.trim()) {
                 localStorage.setItem('snakePlayerName', n.trim().slice(0, 16));
                 updatePlayerBar();
                 renderGlobalLeaderboards();
+            }
+            backToMenu();
+        }
+
+        function showRankingScreen() {
+            startMenuEl.style.display = 'none';
+            nameSetupEl.style.display = 'none';
+            levelSelectEl.style.display = 'none';
+            gameOverEl.style.display = 'none';
+            rankingScreenEl.style.display = 'block';
+            gameTitleEl.style.opacity = '1';
+            renderGlobalLeaderboards();
+            renderLocalLeaderboards(null, null, null);
+            switchRankingTab('endless');
+        }
+
+        function showRankingScreenFromGameOver() {
+            showRankingScreen();
+            if (gameMode === 'level') {
+                switchRankingTab('level');
+            }
+        }
+
+        function switchRankingTab(mode) {
+            const tabs = document.querySelectorAll('.ranking-tab');
+            const panels = document.querySelectorAll('.ranking-panel');
+            tabs.forEach(t => t.classList.remove('active'));
+            panels.forEach(p => p.classList.remove('active'));
+
+            if (mode === 'level') {
+                tabs[1].classList.add('active');
+                document.getElementById('rankingLevel').classList.add('active');
+            } else {
+                tabs[0].classList.add('active');
+                document.getElementById('rankingEndless').classList.add('active');
             }
         }
 
@@ -860,7 +1192,11 @@
             startMenuLevel = startLevel;
             startMenuEl.style.display = 'none';
             levelSelectEl.style.display = 'none';
+            nameSetupEl.style.display = 'none';
+            rankingScreenEl.style.display = 'none';
             canvas.style.display = 'block';
+            playerBarEl.style.display = 'block';
+            gameTitleEl.style.opacity = '0';
             initGame();
             startMusic();
         }
@@ -882,6 +1218,8 @@
 
         function showLevelSelect() {
             startMenuEl.style.display = 'none';
+            nameSetupEl.style.display = 'none';
+            rankingScreenEl.style.display = 'none';
             levelSelectEl.style.display = 'block';
             renderLevelGrid();
         }
@@ -1315,17 +1653,19 @@
                 recordNoticeEl.style.display = 'none';
             }
 
-            renderLocalLeaderboards(mode, score, level);
-
-            // 提交并刷新全球排行榜
-            submitGlobalScore(score, mode, level).finally(() => renderGlobalLeaderboards());
+            // 提交全球分数
+            submitGlobalScore(score, mode, level);
         }
 
         function backToMenu() {
             gameOverEl.style.display = 'none';
             levelSelectEl.style.display = 'none';
+            nameSetupEl.style.display = 'none';
+            rankingScreenEl.style.display = 'none';
             startMenuEl.style.display = 'block';
             canvas.style.display = 'none';
+            playerBarEl.style.display = 'none';
+            gameTitleEl.style.opacity = '1';
             gameMode = null;
             stopMusic();
             // 清空画布
@@ -1427,6 +1767,10 @@
             touchStartX = 0;
             touchStartY = 0;
         }, { passive: false });
+
+        nameInputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') saveNameFromSetup();
+        });
 
         updatePlayerBar();
         canvas.style.display = 'none';
