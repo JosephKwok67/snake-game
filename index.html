@@ -1153,6 +1153,14 @@
         #controlModeBar.active {
             display: flex;
         }
+        .home-control-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: #aaa;
+        }
         .control-option {
             padding: 5px 14px;
             font-size: 0.8rem;
@@ -1218,7 +1226,7 @@
                                 <div class="mode-desc">层层闯关障碍递增</div>
                             </button>
                         </div>
-                        <div id="controlModeBar" style="margin-top:14px;justify-content:center;">
+                        <div id="homeControlBar" class="home-control-bar" style="margin-top:14px;justify-content:center;">
                             控制方式:
                             <button class="control-option" data-mode="swipe" onclick="setMobileControlMode('swipe')">滑动</button>
                             <button class="control-option" data-mode="arrows" onclick="setMobileControlMode('arrows')">箭头</button>
@@ -1400,6 +1408,7 @@
         const playerBarEl = document.getElementById('playerBar');
         const mobileControlsEl = document.getElementById('mobileControls');
         const controlModeBarEl = document.getElementById('controlModeBar');
+        const homeControlBarEl = document.getElementById('homeControlBar');
         const difficultySelectEl = document.getElementById('difficultySelect');
         const levelBadgeEl = document.getElementById('levelBadge');
         const levelBadgeNumEl = document.getElementById('levelBadgeNum');
@@ -1493,7 +1502,7 @@
         }
 
         function showRankingScreen() {
-            startMenuEl.style.display = 'none';
+            startMenuEl.classList.remove('visible');
             nameSetupEl.style.display = 'none';
             levelSelectEl.style.display = 'none';
             gameOverEl.style.display = 'none';
@@ -1738,6 +1747,10 @@
             if (controlModeBarEl) {
                 controlModeBarEl.classList.toggle('active', detectedTouch);
             }
+            // 首页控制栏在触屏设备上高亮提示
+            if (homeControlBarEl) {
+                homeControlBarEl.style.opacity = detectedTouch ? '1' : '0.6';
+            }
         }
 
         function setDirection(dir) {
@@ -1790,6 +1803,40 @@
                     else { nextDx = 0; nextDy = -gridSize; }
                 }
             }
+        }
+
+        // 改进的触屏滑动：监听整个屏幕、支持连续滑动手势
+        let activeTouchId = null;
+        let lastSwipeX = 0;
+        let lastSwipeY = 0;
+        const SWIPE_MIN = 22;
+
+        function isInteractiveTarget(el) {
+            return el && (el.closest('button, input, .dpad-btn, .control-option, .mode-card, .difficulty-card, .level-btn, .action-btn, .refresh-btn'));
+        }
+
+        function processSwipeMove(x, y) {
+            const deltaX = x - lastSwipeX;
+            const deltaY = y - lastSwipeY;
+            const absX = Math.abs(deltaX);
+            const absY = Math.abs(deltaY);
+            if (Math.max(absX, absY) < SWIPE_MIN) return false;
+
+            // 连续滑动：每次触发后重置基准点
+            if (absX > absY) {
+                if (dx === 0) {
+                    nextDx = deltaX > 0 ? gridSize : -gridSize;
+                    nextDy = 0;
+                }
+            } else {
+                if (dy === 0) {
+                    nextDx = 0;
+                    nextDy = deltaY > 0 ? gridSize : -gridSize;
+                }
+            }
+            lastSwipeX = x;
+            lastSwipeY = y;
+            return true;
         }
 
         // Web Audio API 音效
@@ -2718,6 +2765,7 @@
             rankingScreenEl.style.display = 'none';
             difficultySelectEl.style.display = 'none';
             startMenuEl.classList.add('visible');
+            startMenuEl.style.display = ''; // 恢复 CSS 控制
             canvas.style.display = 'none';
             playerBarEl.style.display = 'none';
             if (mobileControlsEl) mobileControlsEl.classList.remove('active');
@@ -2796,55 +2844,58 @@
             }
         });
 
-        // 触屏滑动控制
-        canvas.addEventListener('touchstart', (e) => {
+        // 触屏滑动控制：全屏监听、连续滑动、忽略按钮点击
+        window.addEventListener('touchstart', (e) => {
             if (getMobileControlMode() !== 'swipe') return;
-            e.preventDefault();
-            initAudio();
-            startMusic();
+            if (isInteractiveTarget(e.target)) return;
             const touch = e.touches[0];
+            if (!touch) return;
+            activeTouchId = touch.identifier;
+            lastSwipeX = touch.clientX;
+            lastSwipeY = touch.clientY;
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
             touchStartTime = Date.now();
         }, { passive: false });
 
-        canvas.addEventListener('touchmove', (e) => {
-            if (getMobileControlMode() !== 'swipe') return;
+        window.addEventListener('touchmove', (e) => {
+            if (getMobileControlMode() !== 'swipe' || activeTouchId === null) return;
+            const touch = Array.from(e.changedTouches).find(t => t.identifier === activeTouchId);
+            if (!touch) return;
             e.preventDefault();
+            processSwipeMove(touch.clientX, touch.clientY);
         }, { passive: false });
 
-        canvas.addEventListener('touchend', (e) => {
-            if (getMobileControlMode() !== 'swipe') return;
+        window.addEventListener('touchend', (e) => {
+            if (getMobileControlMode() !== 'swipe' || activeTouchId === null) return;
+            const touch = Array.from(e.changedTouches).find(t => t.identifier === activeTouchId);
+            if (!touch) return;
             e.preventDefault();
-            if (touchStartX === 0 && touchStartY === 0) return;
-            const touch = e.changedTouches[0];
+            activeTouchId = null;
+
             const deltaX = touch.clientX - touchStartX;
             const deltaY = touch.clientY - touchStartY;
             const elapsed = Date.now() - touchStartTime;
 
-            // 快速点击（时间短、位移小）也可作为暂停/继续
-            if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10 && elapsed < 300) {
+            // 快速点击（时间短、位移小）也可作为暂停/继续/复活
+            if (Math.abs(deltaX) < 12 && Math.abs(deltaY) < 12 && elapsed < 300) {
+                initAudio();
                 if (gameRunning) {
                     gamePaused = !gamePaused;
                     if (gamePaused) stopMusic(); else startMusic();
                 } else {
+                    startMusic();
                     restartGame();
                 }
-                touchStartX = 0;
-                touchStartY = 0;
                 return;
             }
 
-            // 速度补偿：滑得越快，需要的距离越短
-            const velocityX = Math.abs(deltaX) / Math.max(elapsed, 1);
-            const velocityY = Math.abs(deltaY) / Math.max(elapsed, 1);
-            const dynamicThreshold = Math.max(20, 50 - Math.max(velocityX, velocityY) * 80);
+            // 滑动结束时若还未触发方向，再补一次
+            handleSwipe(deltaX, deltaY);
+        }, { passive: false });
 
-            if (Math.max(Math.abs(deltaX), Math.abs(deltaY)) >= dynamicThreshold) {
-                handleSwipe(deltaX, deltaY);
-            }
-            touchStartX = 0;
-            touchStartY = 0;
+        window.addEventListener('touchcancel', () => {
+            activeTouchId = null;
         }, { passive: false });
 
         nameInputEl.addEventListener('keydown', (e) => {
