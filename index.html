@@ -1108,7 +1108,7 @@
         }
         #mobileControls {
             display: none;
-            margin-top: 12px;
+            margin-bottom: 12px;
             flex-direction: column;
             align-items: center;
             gap: 8px;
@@ -1119,12 +1119,13 @@
         }
         .dpad-row {
             display: flex;
-            gap: 8px;
+            gap: 10px;
             justify-content: center;
+            align-items: flex-start;
         }
         .dpad-btn {
-            width: 56px;
-            height: 56px;
+            width: 58px;
+            height: 58px;
             border-radius: 16px;
             font-size: 1.4rem;
             display: flex;
@@ -1136,15 +1137,19 @@
             cursor: pointer;
             transition: all 0.1s;
             padding: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
         }
         .dpad-btn:active {
             transform: scale(0.92);
             background: linear-gradient(135deg, rgba(255,107,53,0.4), rgba(157,78,237,0.3));
             box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
         }
+        .dpad-down {
+            margin-top: 6px;
+        }
         #controlModeBar {
             display: none;
-            margin-top: 10px;
+            margin-bottom: 10px;
             font-size: 0.85rem;
             color: #aaa;
             align-items: center;
@@ -1169,12 +1174,108 @@
             border: 1px solid rgba(255,255,255,0.15);
             color: #ccc;
             cursor: pointer;
+            transition: all 0.2s;
         }
         .control-option.active {
             background: rgba(255, 107, 53, 0.2);
             border-color: #ff6b35;
             color: #ff9e00;
             box-shadow: 0 0 10px rgba(255, 107, 53, 0.25);
+        }
+        /* 虚拟摇杆 */
+        #joystick {
+            display: none;
+            position: fixed;
+            bottom: 22px;
+            left: 22px;
+            width: 130px;
+            height: 130px;
+            z-index: 20;
+            pointer-events: none;
+            user-select: none;
+        }
+        #joystick.active {
+            display: block;
+            pointer-events: auto;
+        }
+        .joystick-base {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 107, 53, 0.35);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            box-shadow: 0 0 25px rgba(255, 107, 53, 0.2), inset 0 0 20px rgba(157, 78, 237, 0.1);
+        }
+        .joystick-stick {
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 54px; height: 54px;
+            margin: -27px 0 0 -27px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255,107,53,0.6), rgba(157,78,237,0.6));
+            border: 2px solid rgba(255,255,255,0.25);
+            box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+            transition: transform 0.05s;
+        }
+        /* 暂停按钮 */
+        #pauseBtn {
+            position: fixed;
+            top: 14px;
+            right: 14px;
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            color: #fff;
+            cursor: pointer;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            z-index: 20;
+            transition: all 0.2s;
+        }
+        #pauseBtn.active {
+            display: flex;
+        }
+        #pauseBtn:hover {
+            background: rgba(255, 107, 53, 0.2);
+            border-color: rgba(255, 107, 53, 0.6);
+            box-shadow: 0 0 18px rgba(255, 107, 53, 0.35);
+        }
+        /* 倒计时遮罩 */
+        #countdownOverlay {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 25;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+        #countdownOverlay.active {
+            display: flex;
+        }
+        #countdownText {
+            font-size: clamp(4rem, 14vw, 8rem);
+            font-weight: 900;
+            color: #fff;
+            text-shadow:
+                0 0 10px #fff,
+                0 0 30px #ff6b35,
+                0 0 60px #9d4edd;
+            animation: countdownPulse 0.9s ease-out;
+        }
+        @keyframes countdownPulse {
+            0% { transform: scale(1.5); opacity: 0; }
+            40% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.8; }
         }
     </style>
 </head>
@@ -1339,12 +1440,11 @@
         <button onclick="backToMenu()" style="margin-top: 15px; background: linear-gradient(135deg, #444, #666);">返回主菜单</button>
     </div>
 
-    <div id="canvasWrap">
-        <div class="corner-deco tl"></div>
-        <div class="corner-deco tr"></div>
-        <div class="corner-deco bl"></div>
-        <div class="corner-deco br"></div>
-        <canvas id="gameCanvas" width="600" height="600"></canvas>
+    <div id="controlModeBar">
+        控制方式:
+        <button class="control-option" data-mode="swipe" onclick="setMobileControlMode('swipe')">滑动</button>
+        <button class="control-option" data-mode="arrows" onclick="setMobileControlMode('arrows')">箭头</button>
+        <button class="control-option" data-mode="joystick" onclick="setMobileControlMode('joystick')">摇杆</button>
     </div>
 
     <div id="mobileControls">
@@ -1353,18 +1453,30 @@
         </div>
         <div class="dpad-row">
             <button class="dpad-btn" data-dir="left" aria-label="左">◀</button>
-            <button class="dpad-btn" data-dir="down" aria-label="下">▼</button>
+            <button class="dpad-btn dpad-down" data-dir="down" aria-label="下">▼</button>
             <button class="dpad-btn" data-dir="right" aria-label="右">▶</button>
         </div>
     </div>
 
-    <div id="controlModeBar">
-        控制方式:
-        <button class="control-option" data-mode="swipe" onclick="setMobileControlMode('swipe')">滑动</button>
-        <button class="control-option" data-mode="arrows" onclick="setMobileControlMode('arrows')">箭头</button>
+    <div id="joystick">
+        <div class="joystick-base">
+            <div class="joystick-stick"></div>
+        </div>
     </div>
 
-    <div id="info">键盘：方向键 / WASD 移动 | 手机：滑动或箭头控制 | 空格暂停 | R 复活</div>
+    <button id="pauseBtn" onclick="togglePause()" title="暂停/继续">⏸</button>
+
+    <div id="countdownOverlay"><span id="countdownText">3</span></div>
+
+    <div id="canvasWrap">
+        <div class="corner-deco tl"></div>
+        <div class="corner-deco tr"></div>
+        <div class="corner-deco bl"></div>
+        <div class="corner-deco br"></div>
+        <canvas id="gameCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <div id="info">键盘：方向键 / WASD 移动 | 手机：滑动/箭头/摇杆 | 空格暂停 | R 复活</div>
 
     <div id="gameOver">
         <h2>游戏结束</h2>
@@ -1409,6 +1521,12 @@
         const mobileControlsEl = document.getElementById('mobileControls');
         const controlModeBarEl = document.getElementById('controlModeBar');
         const homeControlBarEl = document.getElementById('homeControlBar');
+        const joystickEl = document.getElementById('joystick');
+        const joystickBaseEl = document.querySelector('.joystick-base');
+        const joystickStickEl = document.querySelector('.joystick-stick');
+        const pauseBtnEl = document.getElementById('pauseBtn');
+        const countdownOverlayEl = document.getElementById('countdownOverlay');
+        const countdownTextEl = document.getElementById('countdownText');
         const difficultySelectEl = document.getElementById('difficultySelect');
         const levelBadgeEl = document.getElementById('levelBadge');
         const levelBadgeNumEl = document.getElementById('levelBadgeNum');
@@ -1744,6 +1862,9 @@
             if (mobileControlsEl) {
                 mobileControlsEl.classList.toggle('active', detectedTouch && mode === 'arrows');
             }
+            if (joystickEl) {
+                joystickEl.classList.toggle('active', detectedTouch && mode === 'joystick');
+            }
             if (controlModeBarEl) {
                 controlModeBarEl.classList.toggle('active', detectedTouch);
             }
@@ -1783,6 +1904,117 @@
             });
         });
 
+        // 虚拟摇杆
+        let joystickTouchId = null;
+        let joystickOrigin = { x: 0, y: 0 };
+        const JOYSTICK_MAX = 35;
+        const JOYSTICK_DEAD = 12;
+
+        function setJoystickDirection(x, y) {
+            const jdx = x - joystickOrigin.x;
+            const jdy = y - joystickOrigin.y;
+            const dist = Math.sqrt(jdx * jdx + jdy * jdy);
+            if (dist < JOYSTICK_DEAD) return;
+
+            if (Math.abs(jdx) > Math.abs(jdy)) {
+                if (gameRunning && !gamePaused && dx === 0) {
+                    nextDx = jdx > 0 ? gridSize : -gridSize;
+                    nextDy = 0;
+                }
+            } else {
+                if (gameRunning && !gamePaused && dy === 0) {
+                    nextDx = 0;
+                    nextDy = jdy > 0 ? gridSize : -gridSize;
+                }
+            }
+        }
+
+        function updateJoystickStick(x, y) {
+            if (!joystickStickEl) return;
+            const dx = x - joystickOrigin.x;
+            const dy = y - joystickOrigin.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const clamped = Math.min(dist, JOYSTICK_MAX);
+            const angle = Math.atan2(dy, dx);
+            const tx = Math.cos(angle) * clamped;
+            const ty = Math.sin(angle) * clamped;
+            joystickStickEl.style.transform = `translate(${tx}px, ${ty}px)`;
+        }
+
+        if (joystickBaseEl) {
+            joystickBaseEl.addEventListener('touchstart', (e) => {
+                if (getMobileControlMode() !== 'joystick') return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                if (!touch) return;
+                joystickTouchId = touch.identifier;
+                const rect = joystickBaseEl.getBoundingClientRect();
+                joystickOrigin = {
+                    x: rect.left + rect.width / 2,
+                    y: rect.top + rect.height / 2
+                };
+                updateJoystickStick(touch.clientX, touch.clientY);
+                setJoystickDirection(touch.clientX, touch.clientY);
+            }, { passive: false });
+
+            joystickBaseEl.addEventListener('touchmove', (e) => {
+                if (getMobileControlMode() !== 'joystick' || joystickTouchId === null) return;
+                const touch = Array.from(e.changedTouches).find(t => t.identifier === joystickTouchId);
+                if (!touch) return;
+                e.preventDefault();
+                updateJoystickStick(touch.clientX, touch.clientY);
+                setJoystickDirection(touch.clientX, touch.clientY);
+            }, { passive: false });
+
+            const resetJoystick = (e) => {
+                if (joystickTouchId === null) return;
+                if (e.changedTouches && !Array.from(e.changedTouches).find(t => t.identifier === joystickTouchId)) return;
+                e.preventDefault();
+                joystickTouchId = null;
+                if (joystickStickEl) joystickStickEl.style.transform = 'translate(0,0)';
+            };
+            joystickBaseEl.addEventListener('touchend', resetJoystick, { passive: false });
+            joystickBaseEl.addEventListener('touchcancel', resetJoystick, { passive: false });
+        }
+
+        // 暂停 / 倒计时
+        let countdownTimer = null;
+
+        function resumeWithCountdown() {
+            if (countdownTimer || !gameRunning) return;
+            if (pauseBtnEl) pauseBtnEl.textContent = '⏸';
+            if (countdownOverlayEl && countdownTextEl) {
+                countdownOverlayEl.classList.add('active');
+                countdownTextEl.textContent = '3';
+            }
+            let count = 3;
+            countdownTimer = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    if (countdownTextEl) countdownTextEl.textContent = count;
+                } else if (count === 0) {
+                    if (countdownTextEl) countdownTextEl.textContent = 'GO!';
+                } else {
+                    clearInterval(countdownTimer);
+                    countdownTimer = null;
+                    if (countdownOverlayEl) countdownOverlayEl.classList.remove('active');
+                    gamePaused = false;
+                    startMusic();
+                }
+            }, 1000);
+        }
+
+        function togglePause() {
+            if (!gameRunning) return;
+            if (gamePaused) {
+                resumeWithCountdown();
+            } else {
+                gamePaused = true;
+                if (pauseBtnEl) pauseBtnEl.textContent = '▶';
+                stopMusic();
+            }
+        }
+
         detectedTouch = isTouchDevice();
         updateModeIndicator();
         updateMobileControlUI();
@@ -1812,7 +2044,7 @@
         const SWIPE_MIN = 22;
 
         function isInteractiveTarget(el) {
-            return el && (el.closest('button, input, .dpad-btn, .control-option, .mode-card, .difficulty-card, .level-btn, .action-btn, .refresh-btn'));
+            return el && (el.closest('button, input, .dpad-btn, .control-option, .mode-card, .difficulty-card, .level-btn, .action-btn, .refresh-btn, #joystick, .joystick-base, .joystick-stick, #pauseBtn'));
         }
 
         function processSwipeMove(x, y) {
@@ -2144,6 +2376,7 @@
             difficultySelectEl.style.display = 'none';
             canvas.style.display = 'block';
             playerBarEl.style.display = 'block';
+            if (pauseBtnEl) pauseBtnEl.classList.add('active');
             gameTitleEl.style.opacity = '0';
             updateMobileControlUI();
             initGame();
@@ -2225,9 +2458,9 @@
         function generateObstacles(count) {
             obstacles = [];
             const safeZone = [];
-            // 保护出生区域，避免开局被围死
-            for (let x = 7; x <= 13; x++) {
-                for (let y = 8; y <= 12; y++) {
+            // 保护出生区域：初始蛇身位置（x 6-12, y 8-12）外加 3 格边距
+            for (let x = 3; x <= 16; x++) {
+                for (let y = 5; y <= 15; y++) {
                     safeZone.push({ x: x * gridSize, y: y * gridSize });
                 }
             }
@@ -2243,7 +2476,7 @@
             const maxTile = tileCount - margin;
 
             let attempts = 0;
-            while (obstacles.length < count && attempts < count * 100) {
+            while (obstacles.length < count && attempts < count * 150) {
                 attempts++;
                 const candidate = {
                     x: (minTile + Math.floor(Math.random() * (maxTile - minTile))) * gridSize,
@@ -2731,6 +2964,7 @@
             gameRunning = false;
             stopMusic();
             playGameOverSound();
+            if (pauseBtnEl) pauseBtnEl.classList.remove('active');
 
             if (gameMode === 'level') {
                 finalScoreEl.innerHTML = `到达关卡 ${level}<br>得分 ${score}`;
@@ -2773,6 +3007,10 @@
             if (levelBadgeEl) levelBadgeEl.style.display = 'none';
             if (difficultyBadgeEl) difficultyBadgeEl.style.display = 'none';
             if (highScoreBadgeEl) highScoreBadgeEl.style.display = 'inline-flex';
+            if (pauseBtnEl) {
+                pauseBtnEl.classList.remove('active');
+                pauseBtnEl.textContent = '⏸';
+            }
             gameTitleEl.style.opacity = '1';
             gameMode = null;
             endlessDifficulty = null;
@@ -2790,6 +3028,10 @@
             }
             initGame();
             updateMobileControlUI();
+            if (pauseBtnEl) {
+                pauseBtnEl.classList.add('active');
+                pauseBtnEl.textContent = '⏸';
+            }
             startMusic();
         }
 
@@ -2834,8 +3076,7 @@
                     break;
                 case ' ':
                     if (gameRunning) {
-                        gamePaused = !gamePaused;
-                        if (gamePaused) stopMusic(); else startMusic();
+                        togglePause();
                     }
                     break;
                 case 'r':
@@ -2875,20 +3116,6 @@
 
             const deltaX = touch.clientX - touchStartX;
             const deltaY = touch.clientY - touchStartY;
-            const elapsed = Date.now() - touchStartTime;
-
-            // 快速点击（时间短、位移小）也可作为暂停/继续/复活
-            if (Math.abs(deltaX) < 12 && Math.abs(deltaY) < 12 && elapsed < 300) {
-                initAudio();
-                if (gameRunning) {
-                    gamePaused = !gamePaused;
-                    if (gamePaused) stopMusic(); else startMusic();
-                } else {
-                    startMusic();
-                    restartGame();
-                }
-                return;
-            }
 
             // 滑动结束时若还未触发方向，再补一次
             handleSwipe(deltaX, deltaY);
