@@ -7,9 +7,9 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>霓虹贪吃蛇 - 无尽/闯关/排行榜</title>
-    <!-- Supabase SDK：双 CDN 备选，防止某个 CDN 被墙 -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Supabase SDK：defer 异步加载，避免 CDN 卡住导致页面假死 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2" defer></script>
     <script>
         // Supabase 配置
         const SUPABASE_URL = "https://rlowdgmgbcsgeclurcuz.supabase.co";
@@ -28,10 +28,9 @@
             }
             return false;
         }
-        // 立即尝试一次，失败则在页面加载后重试
-        initSupabase();
+        // 页面加载完成后再尝试初始化，此时 defer 脚本已执行
         window.addEventListener('DOMContentLoaded', () => {
-            if (!db) initSupabase();
+            initSupabase();
         });
     </script>
     <style>
@@ -2819,6 +2818,28 @@
             });
         }
 
+        function getDifficultyMultiplier() {
+            if (gameMode === 'endless' && endlessDifficulty && DIFFICULTY[endlessDifficulty]) {
+                return DIFFICULTY[endlessDifficulty].multiplier;
+            }
+            return 1;
+        }
+
+        function addScore(points) {
+            if (gameMode === 'endless' && endlessDifficulty) {
+                score += Math.round(points * getDifficultyMultiplier());
+            } else {
+                score += points;
+            }
+        }
+
+        function getSpeedThreshold() {
+            // 根据难度决定加速间隔：中等每 25 分，困难每 20 分
+            const speedStep = getEndlessSpeedUp();
+            if (speedStep <= 0) return Infinity;
+            return speedStep * 10;
+        }
+
         function update() {
             if (!gameRunning || gamePaused) return;
 
@@ -2842,28 +2863,6 @@
             }
 
             snake.unshift(head);
-
-        function getDifficultyMultiplier() {
-            if (gameMode === 'endless' && endlessDifficulty && DIFFICULTY[endlessDifficulty]) {
-                return DIFFICULTY[endlessDifficulty].multiplier;
-            }
-            return 1;
-        }
-
-        function addScore(points) {
-            if (gameMode === 'endless' && endlessDifficulty) {
-                score += Math.round(points * getDifficultyMultiplier());
-            } else {
-                score += points;
-            }
-        }
-
-        function getSpeedThreshold() {
-            // 根据难度决定加速间隔：中等每 25 分，困难每 20 分
-            const speedStep = getEndlessSpeedUp();
-            if (speedStep <= 0) return Infinity;
-            return speedStep * 10;
-        }
 
             // 吃食物
             const eatenIndex = foods.findIndex(f => f.x === head.x && f.y === head.y);
@@ -3099,21 +3098,19 @@
             touchStartX = touch.clientX;
             touchStartY = touch.clientY;
             touchStartTime = Date.now();
-        }, { passive: false });
+        }, { passive: true });
 
         window.addEventListener('touchmove', (e) => {
             if (getMobileControlMode() !== 'swipe' || activeTouchId === null) return;
             const touch = Array.from(e.changedTouches).find(t => t.identifier === activeTouchId);
             if (!touch) return;
-            e.preventDefault();
             processSwipeMove(touch.clientX, touch.clientY);
-        }, { passive: false });
+        }, { passive: true });
 
         window.addEventListener('touchend', (e) => {
             if (getMobileControlMode() !== 'swipe' || activeTouchId === null) return;
             const touch = Array.from(e.changedTouches).find(t => t.identifier === activeTouchId);
             if (!touch) return;
-            e.preventDefault();
             activeTouchId = null;
 
             const deltaX = touch.clientX - touchStartX;
@@ -3121,11 +3118,11 @@
 
             // 滑动结束时若还未触发方向，再补一次
             handleSwipe(deltaX, deltaY);
-        }, { passive: false });
+        }, { passive: true });
 
         window.addEventListener('touchcancel', () => {
             activeTouchId = null;
-        }, { passive: false });
+        }, { passive: true });
 
         nameInputEl.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') saveNameFromSetup();
