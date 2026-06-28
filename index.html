@@ -1860,14 +1860,15 @@
             document.querySelectorAll('.control-option').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.mode === mode);
             });
+            // 这些交互控件只在游戏中才显示，主菜单不显示
             if (mobileControlsEl) {
-                mobileControlsEl.classList.toggle('active', detectedTouch && mode === 'arrows');
+                mobileControlsEl.classList.toggle('active', gameMode && detectedTouch && mode === 'arrows');
             }
             if (joystickEl) {
-                joystickEl.classList.toggle('active', detectedTouch && mode === 'joystick');
+                joystickEl.classList.toggle('active', gameMode && detectedTouch && mode === 'joystick');
             }
             if (controlModeBarEl) {
-                controlModeBarEl.classList.toggle('active', detectedTouch);
+                controlModeBarEl.classList.toggle('active', gameMode && detectedTouch);
             }
             // 首页控制栏在触屏设备上高亮提示
             if (homeControlBarEl) {
@@ -2944,10 +2945,9 @@
             gameOverEl.style.display = 'none';
             canvas.style.display = 'none';
             playerBarEl.style.display = 'none';
-            if (mobileControlsEl) mobileControlsEl.classList.remove('active');
-            if (controlModeBarEl) controlModeBarEl.classList.remove('active');
-            gameTitleEl.style.opacity = '1';
             gameMode = null;
+            updateMobileControlUI();
+            gameTitleEl.style.opacity = '1';
             stopMusic();
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             showLevelSelect();
@@ -2976,7 +2976,7 @@
                 finalScoreEl.textContent = score;
             }
             gameOverEl.style.display = 'block';
-            if (mobileControlsEl) mobileControlsEl.classList.remove('active');
+            updateMobileControlUI();
 
             const mode = gameMode || 'endless';
             addScoreToLeaderboard(mode, score, level);
@@ -3003,8 +3003,9 @@
             startMenuEl.style.display = ''; // 恢复 CSS 控制
             canvas.style.display = 'none';
             playerBarEl.style.display = 'none';
-            if (mobileControlsEl) mobileControlsEl.classList.remove('active');
-            if (controlModeBarEl) controlModeBarEl.classList.remove('active');
+            gameMode = null;
+            endlessDifficulty = null;
+            updateMobileControlUI();
             if (levelBadgeEl) levelBadgeEl.style.display = 'none';
             if (difficultyBadgeEl) difficultyBadgeEl.style.display = 'none';
             if (highScoreBadgeEl) highScoreBadgeEl.style.display = 'inline-flex';
@@ -3013,8 +3014,6 @@
                 pauseBtnEl.textContent = '⏸';
             }
             gameTitleEl.style.opacity = '1';
-            gameMode = null;
-            endlessDifficulty = null;
             stopMusic();
             renderHomeLeaderboard();
             // 清空画布
